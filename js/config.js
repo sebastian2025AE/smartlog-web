@@ -1,3 +1,9 @@
+// Configuración de Smartlog (PINs de acceso)
+window.SMARTLOG_CONFIG = {
+  pinOperador: "1234",
+  pinAdmin: "2024"
+};
+
 // Configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBffrkfafrLiJaec6oFFxxYiG4vQ7it3tE",
@@ -11,7 +17,9 @@ const firebaseConfig = {
 };
 
 // Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
 // Referencia a la base de datos en tiempo real
-const database = firebase.database();
+const database = typeof firebase !== 'undefined' ? firebase.database() : null;
