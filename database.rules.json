@@ -1,0 +1,10 @@
+{
+  "rules": {
+    ".read": true,
+    "eventos": { "$dia": { "$id": { ".write": true, ".validate": "newData.hasChildren(['ts','tipo'])" } } },
+    "visitantes": { "$dia": { "$id": { ".write": true } } },
+    "lotes": { "$dia": { "$id": { ".write": true } } },
+    "estado": { ".write": true },
+    "comando": { ".write": true }
+  }
+}

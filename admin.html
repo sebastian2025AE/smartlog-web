@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administración · Smartlog</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .kpis { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); }
+  .kpi .v { display: flex; align-items: baseline; gap: 8px; }
+  .kpi .v small { font: 600 16px 'Public Sans', sans-serif; color: var(--muted); }
+  .kpi.destacado { border-color: var(--celeste); background: var(--celeste-tint); }
+  .estado-fila { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 28px; }
+  .dato { display: grid; gap: 2px; }
+  .dato small { color: var(--muted); font-size: 12.5px; }
+  .dato b { font-weight: 600; }
+  .maq-lamp { display: flex; align-items: center; gap: 12px; }
+  .maq-lamp .lampara { width: 18px; height: 18px; }
+  .estado-caja[data-estado="stop"] { background: var(--danger-bg); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+  .estado-caja[data-estado="stop"] .lampara { background: var(--danger); box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 30%, transparent); animation: parpadeo .9s steps(2) infinite; }
+  .estado-caja[data-estado="off"] .lampara { background: var(--line-2); box-shadow: none; }
+  .estado-caja[data-estado="sin"] .lampara { background: var(--line-2); box-shadow: none; }
+  .grafico { position: relative; height: 280px; }
+  .grafico.dona { height: 230px; }
+  .origen-fila { display: grid; grid-template-columns: 90px 1fr 70px; align-items: center; gap: 10px; font-size: 14px; }
+  .origen-barra { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+  .origen-barra i { display: block; height: 100%; background: var(--celeste); border-radius: 5px; transition: width .4s; }
+  tfoot td { font-weight: 700; background: var(--surface-2); position: sticky; bottom: 0; }
+  .vacio { color: var(--muted); padding: 18px; text-align: center; }
+  .tabla-wrap.corta { max-height: 300px; }
+  .tipo-ent { color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="cabecera"></div>
+
+<main class="pagina pila">
+
+  <div class="fila entre" style="align-items:flex-end">
+    <div>
+      <h1 style="font-size:clamp(26px,4vw,38px)">Registro del día</h1>
+      <p id="fechaLarga" class="muted" style="margin-top:6px"></p>
+    </div>
+    <div class="fila">
+      <label class="campo" style="min-width:190px">
+        <span>Día</span>
+        <select id="selDia" aria-label="Elegir día"></select>
+      </label>
+      <button id="btnExcel" class="btn btn-primario" style="align-self:flex-end">⬇ Exportar a Excel</button>
+      <button id="btnBorrar" class="btn btn-sm" style="align-self:flex-end" title="Elimina los datos de este día">Borrar datos de este día</button>
+    </div>
+  </div>
+
+  <!-- ===== Estado de la máquina ===== -->
+  <section class="panel estado-caja" id="estadoCaja" data-estado="sin" aria-label="Estado de la máquina">
+    <div class="estado-fila">
+      <div class="maq-lamp" role="status" aria-live="polite">
+        <span class="lampara" aria-hidden="true"></span>
+        <div>
+          <div id="maqTitulo" class="estado-titulo">Sin datos</div>
+          <div id="maqSub" class="estado-sub">Esperando al operador</div>
+        </div>
+      </div>
+      <div class="dato"><small>Modo</small><b id="maqModo">—</b></div>
+      <div class="dato"><small>Operador</small><b id="maqOper">—</b></div>
+      <div class="dato"><small>Último dato</small><b id="maqTs">—</b></div>
+      <div class="fila">
+        <button id="btnParoRemoto" class="btn btn-peligro">⛔ Paro remoto</button>
+        <button id="btnApagarRemoto" class="btn">⏻ Apagar remoto</button>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:12px;font-size:13px">Por seguridad, desde aquí solo se puede <b>detener</b> la máquina. Para reanudarla o encenderla, alguien debe hacerlo en la máquina (pantalla del operador).</p>
+  </section>
+
+  <!-- ===== KPIs ===== -->
+  <section class="kpis" aria-label="Resumen del día">
+    <div class="kpi"><div class="v" id="kEnt">0</div><div class="t">Entradas</div><div class="d">Limones que llegaron a la faja</div></div>
+    <div class="kpi"><div class="v" id="kSal">0</div><div class="t">Salidas</div><div class="d">Limones ya clasificados</div></div>
+    <div class="kpi"><div class="v" id="kProc">0</div><div class="t">En proceso</div><div class="d">Entraron y aún no salen</div></div>
+    <div class="kpi destacado"><div class="v"><span id="kAprov">0</span><small id="kAprovPct">0 %</small></div><div class="t">Aprovechables</div><div class="d">Verdes + amarillos</div></div>
+    <div class="kpi"><div class="v"><span id="kDesc">0</span><small id="kDescPct">0 %</small></div><div class="t">Descarte</div><div class="d">Podridos o dañados</div></div>
+  </section>
+
+  <!-- ===== Registro por hora + dona ===== -->
+  <div class="grid g-7-5">
+    <section class="panel">
+      <h2>Entradas y salidas por hora</h2>
+      <div class="grafico"><canvas id="grHora" role="img" aria-label="Gráfico de entradas y salidas por hora"></canvas></div>
+      <div class="tabla-wrap corta" style="margin-top:14px">
+        <table>
+          <thead><tr><th>Hora</th><th class="num">Entradas</th><th class="num">Salidas</th><th class="num">Verde</th><th class="num">Amarillo</th><th class="num">Descarte</th></tr></thead>
+          <tbody id="tbHora"></tbody>
+          <tfoot id="tfHora"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <div class="pila">
+      <section class="panel">
+        <h2>Salidas por categoría</h2>
+        <div class="grafico dona"><canvas id="grDona" role="img" aria-label="Gráfico de salidas por categoría"></canvas></div>
+        <div id="listaCats" class="pila" style="margin-top:14px"></div>
+      </section>
+      <section class="panel">
+        <h2>¿Quién generó las salidas?</h2>
+        <div id="origenes" class="pila"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===== Eventos en vivo ===== -->
+  <section class="panel">
+    <div class="fila entre">
+      <h2>Eventos en vivo</h2>
+      <span class="muted" style="font-size:13px">Últimos 100 · el más nuevo arriba</span>
+    </div>
+    <div class="tabla-wrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th>Hora</th><th>Tipo</th><th>Categoría</th><th>Origen</th><th>Quién</th><th>Lote</th></tr></thead>
+        <tbody id="tbEventos"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid g2">
+    <section class="panel">
+      <h2>Visitantes del día</h2>
+      <div class="tabla-wrap corta" style="margin-top:14px">
+        <table>
+          <thead><tr><th>Nombre</th><th>Institución</th><th>Rol</th><th>Hora</th></tr></thead>
+          <tbody id="tbVis"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Lotes de prueba</h2>
+      <div class="tabla-wrap corta" style="margin-top:14px">
+        <table>
+          <thead><tr><th>Quién</th><th class="num">Limones</th><th class="num">Aprovechables</th><th>Hora</th></tr></thead>
+          <tbody id="tbLotes"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- ===== Confirmación de borrado ===== -->
+<div id="modalBorrar" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="mbTit">
+  <div class="modal-caja" style="width:min(460px,100%)">
+    <div class="modal-cab"><h2 id="mbTit">Borrar datos de este día</h2></div>
+    <div class="modal-cuerpo pila">
+      <p>Se eliminarán <b>todos</b> los eventos, visitantes y lotes del <b id="mbDia"></b>. No se puede deshacer.</p>
+      <label class="campo">
+        <span>Escribe BORRAR para confirmar</span>
+        <input id="mbTexto" type="text" autocomplete="off" autocapitalize="characters">
+      </label>
+      <div class="fila" style="justify-content:flex-end">
+        <button id="mbCancelar" class="btn">Cancelar</button>
+        <button id="mbOk" class="btn btn-peligro" disabled>Borrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+(function () {
+  const ses = SL.exigirRol('admin');
+  if (!ses) return;
+  SL.cabecera('admin.html');
+
+  const $ = id => document.getElementById(id);
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const num = n => n.toLocaleString('es-PE');
+  const pad = n => String(n).padStart(2, '0');
+
+  let dia = SL.hoy();
+  let evs = [], vis = [], lotes = [];
+  let offEv = null, offVis = null, offLotes = null;
+  let grHora = null, grDona = null;
+
+  /* ---------------- selector de día ---------------- */
+  function cargarDias() {
+    return DB.dias().then(lista => {
+      const hoy = SL.hoy();
+      const set = new Set([hoy, dia, ...(lista || [])]);
+      const ordenados = [...set].sort().reverse();
+      $('selDia').innerHTML = ordenados.map(d =>
+        `<option value="${d}" ${d === dia ? 'selected' : ''}>${d}${d === hoy ? ' (hoy)' : ''}</option>`).join('');
+    });
+  }
+  $('selDia').addEventListener('change', () => { dia = $('selDia').value; suscribir(); });
+
+  function suscribir() {
+    [offEv, offVis, offLotes].forEach(f => f && f());
+    evs = []; vis = []; lotes = [];
+    $('fechaLarga').textContent = SL.fechaLarga(dia);
+    offEv = DB.onEventos(dia, arr => { evs = arr; pintar(); });
+    offVis = DB.onVisitantes(dia, arr => { vis = arr; pintarVisitantes(); });
+    offLotes = DB.onLotes(dia, arr => { lotes = arr; pintarLotes(); });
+    pintar(); pintarVisitantes(); pintarLotes();
+  }
+
+  /* ---------------- cálculos ---------------- */
+  function porHora(lista) {
+    const h = Array.from({ length: 24 }, () => ({ ent: 0, sal: 0, VERDE: 0, AMARILLO: 0, DESCARTE: 0 }));
+    lista.forEach(e => {
+      const x = h[SL.horaDe(e.ts)];
+      if (e.tipo === 'entrada') x.ent++;
+      else if (e.tipo === 'salida' && SL.CATS[e.cat]) { x.sal++; x[e.cat]++; }
+    });
+    return h;
+  }
+  const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+
+  /* ---------------- gráficos ---------------- */
+  function colorGraficos() {
+    if (typeof Chart === 'undefined') return;
+    Chart.defaults.color = css('--muted');
+    Chart.defaults.borderColor = css('--line');
+    Chart.defaults.font.family = "'Public Sans', sans-serif";
+    Chart.defaults.font.size = 13;
+  }
+  function crearGraficos() {
+    if (typeof Chart === 'undefined') {
+      document.querySelectorAll('.grafico').forEach(g => g.innerHTML = '<p class="vacio">No se pudo cargar Chart.js (revisa tu conexión a internet).</p>');
+      return;
+    }
+    colorGraficos();
+    grHora = new Chart($('grHora').getContext('2d'), {
+      type: 'bar',
+      data: { labels: [], datasets: [
+        { label: 'Entradas', data: [], backgroundColor: css('--line-2'), borderRadius: 4 },
+        { label: 'Salidas', data: [], backgroundColor: css('--celeste'), borderRadius: 4 }
+      ] },
+      options: {
+        maintainAspectRatio: false, animation: false,
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } },
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10, padding: 16 } } }
+      }
+    });
+    const centro = {
+      id: 'centro',
+      afterDraw(c) {
+        const { ctx, chartArea: { left, right, top, bottom } } = c;
+        const x = (left + right) / 2, y = (top + bottom) / 2;
+        const t = c.data.datasets[0].data.reduce((s, v) => s + v, 0);
+        ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = css('--text'); ctx.font = "700 34px Sora, sans-serif"; ctx.fillText(t, x, y - 6);
+        ctx.fillStyle = css('--muted'); ctx.font = "13px 'Public Sans', sans-serif"; ctx.fillText('clasificados', x, y + 18);
+        ctx.restore();
+      }
+    };
+    grDona = new Chart($('grDona').getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: SL.ORDEN.map(c => SL.CATS[c].nombre),
+        datasets: [{ data: [0, 0, 0], backgroundColor: SL.ORDEN.map(SL.color), borderColor: css('--surface'), borderWidth: 4, hoverOffset: 4 }]
+      },
+      options: { maintainAspectRatio: false, animation: false, cutout: '66%', plugins: { legend: { display: false } } },
+      plugins: [centro]
+    });
+  }
+  document.addEventListener('sl-tema', () => {
+    colorGraficos();
+    if (grHora) {
+      grHora.data.datasets[0].backgroundColor = css('--line-2');
+      grHora.data.datasets[1].backgroundColor = css('--celeste');
+      grHora.update();
+    }
+    if (grDona) {
+      grDona.data.datasets[0].backgroundColor = SL.ORDEN.map(SL.color);
+      grDona.data.datasets[0].borderColor = css('--surface');
+      grDona.update();
+    }
+    pintar();
+  });
+
+  /* ---------------- pintar todo ---------------- */
+  function pintar() {
+    const r = SL.resumir(evs);
+    $('kEnt').textContent = num(r.entradas);
+    $('kSal').textContent = num(r.salidas);
+    $('kProc').textContent = num(r.enProceso);
+    $('kAprov').textContent = num(r.aprovechables);
+    $('kAprovPct').textContent = r.pctAprov + ' %';
+    $('kDesc').textContent = num(r.porCat.DESCARTE);
+    $('kDescPct').textContent = pct(r.porCat.DESCARTE, r.salidas) + ' %';
+
+    // tabla y gráfico por hora
+    const h = porHora(evs);
+    const conDatos = h.map((x, i) => (x.ent || x.sal) ? i : -1).filter(i => i >= 0);
+    const lo = conDatos.length ? Math.min(6, conDatos[0]) : 6;
+    const hi = conDatos.length ? Math.max(22, conDatos[conDatos.length - 1]) : 22;
+    if (grHora) {
+      const idx = []; for (let i = lo; i <= hi; i++) idx.push(i);
+      grHora.data.labels = idx.map(i => pad(i) + ':00');
+      grHora.data.datasets[0].data = idx.map(i => h[i].ent);
+      grHora.data.datasets[1].data = idx.map(i => h[i].sal);
+      grHora.update('none');
+    }
+    if (!conDatos.length) {
+      $('tbHora').innerHTML = '<tr><td colspan="6" class="vacio">Todavía no hay movimientos en este día.</td></tr>';
+      $('tfHora').innerHTML = '';
+    } else {
+      $('tbHora').innerHTML = conDatos.map(i => `<tr><td>${pad(i)}:00 – ${pad(i)}:59</td><td class="num">${h[i].ent}</td><td class="num">${h[i].sal}</td><td class="num">${h[i].VERDE}</td><td class="num">${h[i].AMARILLO}</td><td class="num">${h[i].DESCARTE}</td></tr>`).join('');
+      $('tfHora').innerHTML = `<tr><td>Total del día</td><td class="num">${r.entradas}</td><td class="num">${r.salidas}</td><td class="num">${r.porCat.VERDE}</td><td class="num">${r.porCat.AMARILLO}</td><td class="num">${r.porCat.DESCARTE}</td></tr>`;
+    }
+
+    // dona + lista
+    if (grDona) {
+      grDona.data.datasets[0].data = SL.ORDEN.map(c => r.porCat[c]);
+      grDona.update('none');
+    }
+    $('listaCats').innerHTML = SL.ORDEN.map(c => `
+      <div class="fila entre">
+        <span class="fila" style="gap:8px">${SL.glifo(c, 16)}<b>${SL.CATS[c].nombre}</b><span class="muted" style="font-size:13px">${SL.CATS[c].estado}</span></span>
+        <span><b>${r.porCat[c]}</b> <span class="muted">· ${pct(r.porCat[c], r.salidas)} %</span></span>
+      </div>`).join('');
+
+    // orígenes
+    const orig = r.porOrigen, nombres = { operador: 'Operador (Arduino)', jurado: 'Visitantes (lote de prueba)' };
+    const claves = Object.keys(orig).sort((a, b) => orig[b] - orig[a]);
+    $('origenes').innerHTML = claves.length ? claves.map(k => `
+      <div class="origen-fila">
+        <span>${SL.esc(nombres[k] || k)}</span>
+        <div class="origen-barra"><i style="width:${pct(orig[k], r.salidas)}%"></i></div>
+        <span class="num" style="text-align:right"><b>${orig[k]}</b> <span class="muted">${pct(orig[k], r.salidas)} %</span></span>
+      </div>`).join('') : '<p class="muted">Aún no hay salidas registradas.</p>';
+
+    pintarEventos();
+  }
+
+  function pintarEventos() {
+    const ult = evs.slice(-100).reverse();
+    $('tbEventos').innerHTML = ult.length ? ult.map(e => {
+      const cat = SL.CATS[e.cat];
+      const tipo = e.tipo === 'entrada' ? '<span class="tipo-ent">Entrada</span>' : '<b>Salida</b>';
+      const chip = cat ? `<span class="chip">${SL.glifo(e.cat, 13)}${cat.nombre}</span>` : '<span class="muted">—</span>';
+      return `<tr><td class="mono">${SL.hora(e.ts)}</td><td>${tipo}</td><td>${chip}</td><td>${SL.esc(e.origen || 'operador')}</td><td>${SL.esc(e.quien || '—')}</td><td>${SL.esc(e.lote || '—')}</td></tr>`;
+    }).join('') : '<tr><td colspan="6" class="vacio">Sin eventos todavía. Aparecerán aquí apenas lleguen.</td></tr>';
+  }
+
+  function pintarVisitantes() {
+    $('tbVis').innerHTML = vis.length ? vis.slice().reverse().map(v =>
+      `<tr><td>${SL.esc(v.nombre || '—')}</td><td>${SL.esc(v.institucion || v.negocio || '—')}</td><td>${SL.esc(v.rol || '—')}</td><td class="mono">${SL.horaCorta(v.ts)}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="vacio">Nadie se ha registrado todavía.</td></tr>';
+  }
+
+  function resumenLote(l) {
+    const c = l.conteo || {};
+    const total = l.total != null ? l.total : (c.VERDE || 0) + (c.AMARILLO || 0) + (c.DESCARTE || 0);
+    const aprov = (c.VERDE || 0) + (c.AMARILLO || 0);
+    return { total, aprov, p: pct(aprov, total), c };
+  }
+  function pintarLotes() {
+    $('tbLotes').innerHTML = lotes.length ? lotes.slice().reverse().map(l => {
+      const x = resumenLote(l);
+      return `<tr><td>${SL.esc(l.nombre || l.quien || '—')}</td><td class="num">${x.total}</td><td class="num">${x.aprov} · ${x.p} %</td><td class="mono">${SL.horaCorta(l.ts)}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" class="vacio">Todavía no hay lotes de prueba terminados.</td></tr>';
+  }
+
+  /* ---------------- estado de la máquina ---------------- */
+  const TXT = { run: 'En marcha', stop: 'Pausa de emergencia', off: 'Apagada' };
+  DB.onEstado(e => {
+    const m = e.maquina;
+    $('estadoCaja').dataset.estado = TXT[m] ? m : 'sin';
+    $('maqTitulo').textContent = TXT[m] || 'Sin datos';
+    $('maqSub').textContent = m === 'run' ? 'Clasificando limones' : m === 'stop' ? 'Motor y servo detenidos' : m === 'off' ? 'Servo y sensor apagados' : 'Esperando al operador';
+    $('maqModo').textContent = e.modo ? (String(e.modo).toLowerCase() === 'auto' || e.modo === 'AUTO' ? 'Automático' : 'Manual') : '—';
+    $('maqOper').textContent = e.online === true ? 'En línea' : (e.online === false ? 'Sin conexión' : (m ? 'Sin dato' : '—'));
+    $('maqTs').textContent = e.ts ? SL.hora(e.ts) : '—';
+    $('btnParoRemoto').disabled = m === 'stop' || m === 'off';
+    $('btnApagarRemoto').disabled = m === 'off';
+  });
+  $('btnParoRemoto').addEventListener('click', () => {
+    DB.enviarComando({ tipo: 'STOP', quien: ses.nombre || 'Admin' });
+    SL.toast('Paro remoto enviado');
+  });
+  $('btnApagarRemoto').addEventListener('click', () => {
+    if (!confirm('¿Apagar la máquina? Para volver a encenderla hay que hacerlo en el operador.')) return;
+    DB.enviarComando({ tipo: 'OFF', quien: ses.nombre || 'Admin' });
+    SL.toast('Orden de apagado enviada');
+  });
+
+  /* ---------------- exportar ---------------- */
+  function filasExport() {
+    const r = SL.resumir(evs), h = porHora(evs);
+    const resumen = [
+      ['Smartlog · registro del día', dia], [],
+      ['Entradas (llegaron a la faja)', r.entradas], ['Salidas (clasificados)', r.salidas], ['En proceso', r.enProceso],
+      ['Verde (fresco)', r.porCat.VERDE], ['Amarillo (maduro)', r.porCat.AMARILLO], ['Descarte (podrido o dañado)', r.porCat.DESCARTE],
+      ['Aprovechables', r.aprovechables], ['% aprovechables', r.pctAprov + ' %'], [],
+      ['Salidas por origen'], ...Object.entries(r.porOrigen).map(([k, v]) => [k, v])
+    ];
+    const horas = [['Hora', 'Entradas', 'Salidas', 'Verde', 'Amarillo', 'Descarte']];
+    h.forEach((x, i) => { if (x.ent || x.sal) horas.push([pad(i) + ':00', x.ent, x.sal, x.VERDE, x.AMARILLO, x.DESCARTE]); });
+    horas.push(['Total', r.entradas, r.salidas, r.porCat.VERDE, r.porCat.AMARILLO, r.porCat.DESCARTE]);
+    const eventos = [['Hora', 'Tipo', 'Categoría', 'Estado', 'Origen', 'Quién', 'Lote']];
+    evs.forEach(e => eventos.push([SL.hora(e.ts), e.tipo === 'entrada' ? 'Entrada' : 'Salida', SL.CATS[e.cat] ? SL.CATS[e.cat].nombre : '', SL.CATS[e.cat] ? SL.CATS[e.cat].estado : '', e.origen || 'operador', e.quien || '', e.lote || '']));
+    const visitantes = [['Nombre', 'Institución', 'Rol', 'Hora']];
+    vis.forEach(v => visitantes.push([v.nombre || '', v.institucion || v.negocio || '', v.rol || '', SL.horaCorta(v.ts)]));
+    const hojaLotes = [['Quién', 'Limones', 'Verde', 'Amarillo', 'Descarte', 'Aprovechables', '% aprovechables', 'Hora']];
+    lotes.forEach(l => { const x = resumenLote(l); hojaLotes.push([l.nombre || l.quien || '', x.total, x.c.VERDE || 0, x.c.AMARILLO || 0, x.c.DESCARTE || 0, x.aprov, x.p + ' %', SL.horaCorta(l.ts)]); });
+    return { Resumen: resumen, 'Por hora': horas, Eventos: eventos, Visitantes: visitantes, Lotes: hojaLotes };
+  }
+  $('btnExcel').addEventListener('click', () => {
+    const hojas = filasExport();
+    if (typeof XLSX !== 'undefined') {
+      const wb = XLSX.utils.book_new();
+      Object.entries(hojas).forEach(([n, f]) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(f), n));
+      XLSX.writeFile(wb, `smartlog_${dia}.xlsx`);
+      SL.toast('Excel descargado');
+    } else {
+      const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+      const csv = Object.entries(hojas).map(([n, f]) => `# ${n}\n` + f.map(r => r.map(q).join(',')).join('\n')).join('\n\n');
+      SL.descargar(`smartlog_${dia}.csv`, csv);
+      SL.toast('No cargó la librería de Excel: se descargó un CSV', 'mal');
+    }
+  });
+
+  /* ---------------- borrar día ---------------- */
+  const modal = $('modalBorrar');
+  $('btnBorrar').addEventListener('click', () => {
+    $('mbDia').textContent = dia; $('mbTexto').value = ''; $('mbOk').disabled = true;
+    modal.classList.remove('oculto'); $('mbTexto').focus();
+  });
+  const cerrarModal = () => modal.classList.add('oculto');
+  $('mbCancelar').addEventListener('click', cerrarModal);
+  modal.addEventListener('click', e => { if (e.target === modal) cerrarModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.classList.contains('oculto')) cerrarModal(); });
+  $('mbTexto').addEventListener('input', () => { $('mbOk').disabled = $('mbTexto').value.trim().toUpperCase() !== 'BORRAR'; });
+  $('mbOk').addEventListener('click', () => {
+    DB.borrarDia(dia);
+    cerrarModal(); SL.toast('Datos del día eliminados');
+    setTimeout(cargarDias, 300);
+  });
+
+  /* ---------------- arranque ---------------- */
+  crearGraficos();
+  cargarDias().then(suscribir);
+  // refresca la lista de días de vez en cuando (por si empieza un día nuevo)
+  setInterval(() => { if (SL.hoy() !== dia && $('selDia').querySelector(`option[value="${SL.hoy()}"]`) === null) cargarDias(); }, 60000);
+})();
+</script>
+</body>
+</html>

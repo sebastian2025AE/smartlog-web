@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="oscuro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stand · Smartlog en vivo</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+  body.stand-pag { background: #000; }
+  /* En el stand no hay navegación: es una pantalla pública */
+  .stand-pag .nav, .stand-pag #btnTema, .stand-pag .quien { display: none; }
+  .stand-pag .cab { position: static; }
+  .st { max-width: 1760px; margin: 0 auto; padding: 18px clamp(14px, 2vw, 32px) 28px; display: grid; gap: clamp(12px, 1.4vw, 22px); }
+  .st-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .st-top h1 { font-size: clamp(26px, 3.2vw, 52px); }
+  .st-top p { color: var(--muted); font-size: clamp(14px, 1.3vw, 22px); margin-top: 4px; }
+  .reloj { font: 700 clamp(30px, 3.6vw, 60px)/1 'Sora', sans-serif; font-variant-numeric: tabular-nums; }
+  .btn-pant { opacity: .35; } .btn-pant:hover { opacity: 1; }
+
+  #banner { border-radius: 16px; padding: clamp(14px, 2vw, 28px); text-align: center; font: 700 clamp(32px, 5vw, 84px)/1.05 'Sora', sans-serif; background: #c8102e; color: #fff; letter-spacing: .01em; }
+  #banner[data-m="off"] { background: #2b3138; border: 3px solid #c8102e; }
+  #banner small { display: block; font: 500 clamp(15px, 1.5vw, 26px) 'Public Sans', sans-serif; margin-top: 8px; opacity: .9; }
+
+  .st-kpis { display: grid; gap: clamp(10px, 1.2vw, 20px); grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .st-kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: clamp(14px, 1.6vw, 26px); }
+  .st-kpi .v { font: 700 clamp(48px, 7vw, 120px)/1 'Sora', sans-serif; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 10px; }
+  .st-kpi .v small { font: 600 clamp(18px, 2vw, 34px) 'Public Sans', sans-serif; color: var(--muted); }
+  .st-kpi .t { font: 600 clamp(16px, 1.7vw, 28px) 'Sora', sans-serif; margin-top: 8px; }
+  .st-kpi .d { color: var(--muted); font-size: clamp(13px, 1.1vw, 18px); margin-top: 2px; }
+  .st-kpi.aprov { background: var(--celeste-tint); border-color: var(--celeste); }
+  .st-kpi.aprov .v { color: var(--celeste); }
+
+  .st-main { display: grid; gap: clamp(12px, 1.4vw, 22px); grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; }
+  .st-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: clamp(14px, 1.5vw, 24px); }
+  .st-panel h2 { font-size: clamp(16px, 1.5vw, 24px); margin-bottom: 12px; }
+  .cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  .cat { border-radius: 14px; padding: 12px 16px; border: 2px solid; background: var(--surface-2); }
+  .cat .n { font: 700 clamp(36px, 4.6vw, 78px)/1 'Sora', sans-serif; font-variant-numeric: tabular-nums; }
+  .cat .e { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: clamp(15px, 1.5vw, 24px); }
+  .cat .s { color: var(--muted); font-size: clamp(12px, 1.05vw, 17px); margin-top: 2px; }
+  .cat.pop { animation: pop .4s ease; }
+
+  .qr-caja { background: #fff; border-radius: 14px; padding: 14px; width: min(100%, 290px); margin: 0 auto; }
+  .qr-caja svg { display: block; width: 100%; height: auto; }
+  .qr-url { text-align: center; word-break: break-all; font: 500 clamp(12px, 1vw, 16px) 'JetBrains Mono', monospace; color: var(--muted); margin-top: 10px; }
+  .qr-txt { text-align: center; font: 600 clamp(18px, 1.8vw, 30px) 'Sora', sans-serif; margin-bottom: 12px; }
+  .st-dona { position: relative; height: clamp(190px, 17vw, 300px); }
+
+  .ticker { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .ticker li { display: grid; grid-template-columns: 90px 1fr auto; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); font-size: clamp(15px, 1.4vw, 23px); }
+  .ticker li:first-child { border: 1px solid var(--celeste); }
+  .ticker .h { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-size: .85em; }
+  .ticker .o { color: var(--muted); font-size: .8em; }
+  .ticker .nuevo { animation: entra .5s ease; }
+  @keyframes entra { from { opacity: 0; transform: translateX(-10px); } }
+
+  @media (max-width: 1000px) { .st-main { grid-template-columns: 1fr; } .st-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .cats { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="stand-pag">
+<div id="cabecera"></div>
+
+<main class="st">
+  <div class="st-top">
+    <div>
+      <h1>Smartlog en vivo</h1>
+      <p id="fecha"></p>
+    </div>
+    <div class="fila">
+      <div class="reloj" id="reloj" aria-label="Hora actual">--:--:--</div>
+      <button id="btnPant" class="btn btn-sm btn-pant" aria-label="Pantalla completa" title="Pantalla completa">⛶</button>
+    </div>
+  </div>
+
+  <div id="banner" class="oculto" role="alert"></div>
+
+  <section class="st-kpis" aria-label="Resumen de hoy">
+    <div class="st-kpi"><div class="v" id="kEnt">0</div><div class="t">Entran</div><div class="d">Limones que llegan a la faja</div></div>
+    <div class="st-kpi"><div class="v" id="kSal">0</div><div class="t">Salen clasificados</div><div class="d">Ya están en su compartimento</div></div>
+    <div class="st-kpi aprov"><div class="v"><span id="kAprov">0</span><small id="kAprovN">%</small></div><div class="t">Aprovechables</div><div class="d" id="kAprovD">Verdes y amarillos</div></div>
+    <div class="st-kpi"><div class="v"><span id="kDesc">0</span><small id="kDescP">0 %</small></div><div class="t">Descarte</div><div class="d">Podridos o dañados</div></div>
+  </section>
+
+  <div class="st-main">
+    <div class="pila" style="display:grid;gap:inherit">
+      <section class="st-panel">
+        <h2>La faja, en vivo</h2>
+        <div class="plano">
+          <svg id="faja" viewBox="0 0 760 230" role="img" aria-label="Faja transportadora con sensor de color, servo y tres compartimentos">
+            <rect x="16" y="93" width="608" height="18" rx="9" style="fill:var(--deep2,#0a1a25)" fill-opacity="0" stroke-width="1.5" stroke="var(--line-2)"/>
+            <rect x="16" y="93" width="608" height="18" rx="9" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.5"/>
+            <g id="marcas" stroke="var(--line-2)" stroke-width="2"></g>
+            <circle cx="26" cy="102" r="15" fill="var(--surface-2)" stroke="var(--line-2)" stroke-width="1.5"/>
+            <circle cx="614" cy="102" r="15" fill="var(--surface-2)" stroke="var(--line-2)" stroke-width="1.5"/>
+            <g transform="translate(300 0)">
+              <rect x="-40" y="30" width="80" height="34" rx="6" fill="var(--surface-2)" stroke="var(--celeste)" stroke-width="1.8"/>
+              <circle id="led" cx="0" cy="47" r="6" fill="var(--celeste)"/>
+              <path d="M-16 64 L-26 92 M16 64 L26 92" stroke="var(--celeste)" stroke-opacity=".6" stroke-width="1.5" stroke-dasharray="3 4" fill="none"/>
+              <text x="0" y="22" text-anchor="middle" fill="var(--muted)" font-size="13" font-family="Public Sans, sans-serif">Sensor de color</text>
+            </g>
+            <g id="ramas" fill="none" stroke-width="2" stroke-opacity=".5"></g>
+            <g id="bins"></g>
+            <g>
+              <rect x="606" y="118" width="30" height="22" rx="4" fill="var(--surface-2)" stroke="var(--celeste)" stroke-width="1.5"/>
+              <text x="621" y="133" text-anchor="middle" fill="var(--celeste)" font-size="9" font-family="Public Sans, sans-serif">SERVO</text>
+              <line x1="621" y1="118" x2="621" y2="102" stroke="var(--celeste)" stroke-opacity=".5" stroke-width="2"/>
+              <g id="paleta" style="transform-origin:621px 102px; transition: transform .5s cubic-bezier(.3,.7,.3,1);">
+                <line x1="621" y1="102" x2="660" y2="102" stroke="var(--celeste)" stroke-width="6" stroke-linecap="round"/>
+              </g>
+              <circle cx="621" cy="102" r="5" fill="var(--celeste)"/>
+            </g>
+            <g id="bola" style="opacity:0; transform: translate(40px,102px);">
+              <circle id="bolaC" r="12" fill="#9aa7b2" stroke="#000" stroke-width="2.5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="cats" id="cats"></div>
+      </section>
+
+      <section class="st-panel">
+        <h2>Últimos movimientos</h2>
+        <ul class="ticker" id="ticker" aria-live="polite"></ul>
+      </section>
+    </div>
+
+    <div class="pila" style="display:grid;gap:inherit">
+      <section class="st-panel">
+        <div class="qr-txt">Escanea para probar un lote</div>
+        <div class="qr-caja oculto" id="qr"></div>
+        <div class="qr-url" id="qrUrl"></div>
+      </section>
+      <section class="st-panel">
+        <h2>Salidas por categoría</h2>
+        <div class="st-dona"><canvas id="dona" role="img" aria-label="Gráfico de salidas por categoría"></canvas></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/common.js"></script>
+<script>document.documentElement.dataset.tema = 'oscuro';   /* el stand siempre es oscuro y no guarda el tema */</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function () {
+  SL.cabecera('stand.html');
+  const $ = id => document.getElementById(id);
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  const NS = 'http://www.w3.org/2000/svg';
+
+  /* ---------------- reloj y fecha ---------------- */
+  let dia = SL.hoy();
+  const tick = () => { $('reloj').textContent = SL.hora(); };
+  tick(); setInterval(tick, 1000);
+  $('fecha').textContent = SL.fechaLarga(dia);
+
+  /* ---------------- pantalla completa ---------------- */
+  $('btnPant').addEventListener('click', () => {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(() => {});
+    } catch (_) {}
+  });
+
+  /* ---------------- QR ---------------- */
+  const url = new URL('index.html', location.href).href;
+  $('qrUrl').textContent = url;
+  try {
+    if (typeof qrcode === 'function') {
+      const q = qrcode(0, 'M'); q.addData(url); q.make();
+      $('qr').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+      $('qr').classList.remove('oculto');
+    }
+  } catch (_) {}
+
+  /* ---------------- faja: dibujo ---------------- */
+  const BIN_Y = { VERDE: 10, AMARILLO: 86, DESCARTE: 162 };
+  const P = { inicio: [40, 102], sensor: [300, 102], salida: [632, 102] };
+  const BIN = id => [706, BIN_Y[id] + 29];
+  function dibujarFaja() {
+    $('marcas').innerHTML = ''; $('ramas').innerHTML = ''; $('bins').innerHTML = '';
+    for (let x = 50; x < 600; x += 26) {
+      const l = document.createElementNS(NS, 'line');
+      l.setAttribute('x1', x); l.setAttribute('x2', x); l.setAttribute('y1', 98); l.setAttribute('y2', 106);
+      $('marcas').appendChild(l);
+    }
+    SL.ORDEN.forEach(id => {
+      const c = SL.color(id), y = BIN_Y[id], cat = SL.CATS[id];
+      const p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', `M 632 102 C 650 102, 650 ${y + 29}, 666 ${y + 29}`);
+      p.setAttribute('stroke', c); $('ramas').appendChild(p);
+      const g = document.createElementNS(NS, 'g'); g.id = 'bin-' + id;
+      g.innerHTML = `
+        <rect x="666" y="${y}" width="90" height="58" rx="7" fill="${c}" fill-opacity=".16" stroke="${c}" stroke-width="2"/>
+        <g transform="translate(675 ${y + 9})">${SL.glifo(id, 16, c)}</g>
+        <text x="697" y="${y + 22}" fill="${c}" font-size="12.5" font-weight="700" font-family="Sora, sans-serif">${cat.nombre}</text>
+        <text x="675" y="${y + 46}" fill="var(--muted)" font-size="11.5" font-family="Public Sans, sans-serif">${cat.estado.split(' ')[0]}</text>`;
+      $('bins').appendChild(g);
+    });
+  }
+
+  /* ---------------- faja: animación por cola ---------------- */
+  const bola = $('bola'), bolaC = $('bolaC'), paleta = $('paleta');
+  const espera = ms => new Promise(r => setTimeout(r, ms));
+  const MAX_COLA = 6;
+  let cola = [], corriendo = false, bolaEnSensor = false;
+
+  function mover(a, b, ms, easing = 'ease-in-out') {
+    bola.style.transform = `translate(${a[0]}px, ${a[1]}px)`;
+    bola.getAnimations().forEach(x => x.cancel());
+    return bola.animate(
+      [{ transform: `translate(${a[0]}px, ${a[1]}px)` }, { transform: `translate(${b[0]}px, ${b[1]}px)` }],
+      { duration: ms, easing, fill: 'forwards' }
+    ).finished;
+  }
+  function reiniciarBola() {
+    bola.getAnimations().forEach(x => x.cancel());
+    bola.style.transform = `translate(${P.inicio[0]}px, ${P.inicio[1]}px)`;
+    bola.style.opacity = 1; bolaC.setAttribute('fill', '#9aa7b2');
+  }
+  const girarPaleta = ang => { paleta.style.transform = `rotate(${(ang - 90) * 0.55}deg)`; };
+  function destello(id) {
+    const r = $('bin-' + id).querySelector('rect');
+    r.animate([{ fillOpacity: .7 }, { fillOpacity: .16 }], { duration: 800, easing: 'ease-out' });
+  }
+
+  async function animar(it) {
+    if (it.tipo === 'entrada') {
+      reiniciarBola();
+      await mover(P.inicio, P.sensor, 900);
+      bolaEnSensor = true;
+      return;
+    }
+    // salida
+    if (!bolaEnSensor) { reiniciarBola(); await mover(P.inicio, P.sensor, 350); }
+    bolaC.setAttribute('fill', SL.color(it.cat));
+    girarPaleta(SL.CATS[it.cat].angulo);
+    await espera(450);
+    await mover(P.sensor, P.salida, 600);
+    await mover(P.salida, BIN(it.cat), 450, 'ease-in');
+    destello(it.cat);
+    bola.style.opacity = 0; bolaEnSensor = false;
+    setTimeout(() => { if (!cola.length) girarPaleta(SL.ANGULO_REPOSO); }, 300);
+  }
+  async function correr() {
+    if (corriendo) return;
+    corriendo = true;
+    while (cola.length) {
+      const it = cola.shift();
+      try { await animar(it); } catch (_) { /* animación cancelada */ }
+    }
+    corriendo = false;
+  }
+  function encolar(e) {
+    if (maquina !== 'run' && maquina !== undefined) return;
+    if (cola.length >= MAX_COLA) return;     // si llegan demasiados, solo se actualizan los contadores
+    cola.push({ tipo: e.tipo, cat: e.cat }); correr();
+  }
+
+  /* ---------------- contadores, dona y ticker ---------------- */
+  let grDona = null, evs = [], previoCats = { VERDE: 0, AMARILLO: 0, DESCARTE: 0 };
+
+  function colorGraficos() {
+    if (typeof Chart === 'undefined') return;
+    Chart.defaults.color = css('--muted');
+    Chart.defaults.font.family = "'Public Sans', sans-serif";
+  }
+  function crearDona() {
+    if (typeof Chart === 'undefined') { document.querySelector('.st-dona').innerHTML = '<p class="muted">No se pudo cargar Chart.js.</p>'; return; }
+    colorGraficos();
+    const centro = {
+      id: 'centro',
+      afterDraw(c) {
+        const { ctx, chartArea: { left, right, top, bottom } } = c;
+        const x = (left + right) / 2, y = (top + bottom) / 2, h = bottom - top;
+        const t = c.data.datasets[0].data.reduce((s, v) => s + v, 0);
+        ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = css('--text'); ctx.font = `700 ${Math.round(h * .26)}px Sora, sans-serif`; ctx.fillText(t, x, y - h * .04);
+        ctx.fillStyle = css('--muted'); ctx.font = `${Math.round(h * .08)}px 'Public Sans', sans-serif`; ctx.fillText('clasificados', x, y + h * .15);
+        ctx.restore();
+      }
+    };
+    grDona = new Chart($('dona').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: SL.ORDEN.map(c => SL.CATS[c].nombre), datasets: [{ data: [0, 0, 0], backgroundColor: SL.ORDEN.map(SL.color), borderColor: css('--surface'), borderWidth: 4 }] },
+      options: { maintainAspectRatio: false, cutout: '68%', animation: { duration: 400 }, plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+      plugins: [centro]
+    });
+  }
+
+  function construirCats() {
+    $('cats').innerHTML = SL.ORDEN.map(id => {
+      const c = SL.CATS[id];
+      return `<div class="cat" id="cat-${id}" style="border-color:${SL.color(id)}">
+        <div class="e" style="color:${SL.color(id)}">${SL.glifo(id, 22)}${c.nombre}</div>
+        <div class="n" id="n-${id}">0</div>
+        <div class="s">${c.estado} · <span id="p-${id}">0 %</span></div></div>`;
+    }).join('');
+  }
+
+  const texto = e => e.tipo === 'entrada'
+    ? 'Entra un limón a la faja'
+    : `Sale clasificado: <b style="color:${SL.color(e.cat)}">${SL.CATS[e.cat] ? SL.CATS[e.cat].nombre : e.cat}</b>`;
+
+  function pintar(nuevo) {
+    const r = SL.resumir(evs);
+    $('kEnt').textContent = r.entradas;
+    $('kSal').textContent = r.salidas;
+    $('kAprov').textContent = r.pctAprov;
+    $('kAprovN').textContent = '%';
+    $('kAprovD').textContent = `${r.aprovechables} limones · verdes y amarillos`;
+    $('kDesc').textContent = r.porCat.DESCARTE;
+    $('kDescP').textContent = pct(r.porCat.DESCARTE, r.salidas) + ' %';
+    SL.ORDEN.forEach(id => {
+      $('n-' + id).textContent = r.porCat[id];
+      $('p-' + id).textContent = pct(r.porCat[id], r.salidas) + ' %';
+      if (r.porCat[id] > previoCats[id]) { const el = $('cat-' + id); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+    });
+    previoCats = { ...r.porCat };
+    if (grDona) { grDona.data.datasets[0].data = SL.ORDEN.map(id => r.porCat[id]); grDona.update(); }
+
+    const ult = evs.slice(-8).reverse();
+    $('ticker').innerHTML = ult.length ? ult.map((e, i) => `
+      <li class="${i === 0 && nuevo ? 'nuevo' : ''}">
+        <span class="h">${SL.hora(e.ts)}</span><span>${texto(e)}</span>
+        <span class="o">${SL.esc(e.origen === 'jurado' ? 'visitante' : (e.origen || 'operador'))}</span></li>`).join('')
+      : '<li><span></span><span class="muted">Esperando el primer limón…</span><span></span></li>';
+  }
+
+  /* ---------------- datos en vivo ---------------- */
+  let offEv = null, maquina;
+  function suscribir() {
+    offEv && offEv();
+    evs = []; previoCats = { VERDE: 0, AMARILLO: 0, DESCARTE: 0 };
+    offEv = DB.onEventos(dia, (arr, nuevo) => {
+      evs = arr; pintar(!!nuevo);
+      if (nuevo) encolar(nuevo);
+    });
+  }
+  setInterval(() => {            // si pasa la medianoche, empieza el día nuevo
+    const h = SL.hoy();
+    if (h !== dia) { dia = h; $('fecha').textContent = SL.fechaLarga(dia); suscribir(); }
+  }, 30000);
+
+  const BANNER = { stop: ['PAUSA DE EMERGENCIA', 'La faja se detuvo por seguridad'], off: ['APAGADO', 'Servo y sensor apagados para ahorrar energía'] };
+  DB.onEstado(e => {
+    maquina = e.maquina;
+    const b = $('banner');
+    if (BANNER[maquina]) {
+      b.dataset.m = maquina; b.innerHTML = `${BANNER[maquina][0]}<small>${BANNER[maquina][1]}</small>`; b.classList.remove('oculto');
+      cola = []; reiniciarBola(); bola.style.opacity = 0; bolaEnSensor = false; girarPaleta(SL.ANGULO_REPOSO);
+    } else b.classList.add('oculto');
+  });
+
+  document.addEventListener('sl-tema', () => {});
+  construirCats(); dibujarFaja(); crearDona(); pintar(false); suscribir();
+})();
+</script>
+</body>
+</html>

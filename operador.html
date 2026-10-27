@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operador · Smartlog</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .dial-wrap svg { max-width: 280px; margin: 0 auto; display: block; }
+  .rgb-fila { display: flex; align-items: center; gap: 10px; font: 12px 'JetBrains Mono', monospace; }
+  .rgb-fila .pista-rgb { flex: 1; height: 8px; border-radius: 4px; background: var(--line); }
+  .rgb-fila .pista-rgb i { display: block; height: 8px; border-radius: 4px; width: 0; transition: width .2s; }
+  .modo-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+  .lista-ayuda { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+</style>
+</head>
+<body>
+<div id="cabecera"></div>
+
+<!-- Estado de la máquina + paro de emergencia (siempre visible) -->
+<div id="maquina" class="maquina" data-estado="run">
+  <div class="hazard" aria-hidden="true"></div>
+  <div class="maquina-in">
+    <div class="fila" style="gap:12px;flex-wrap:nowrap;min-width:0">
+      <span class="lampara" aria-hidden="true"></span>
+      <div role="status" aria-live="assertive" style="min-width:0">
+        <div id="estadoTitulo" class="estado-titulo">En marcha</div>
+        <div id="estadoSub" class="estado-sub">Clasificando en modo automático</div>
+      </div>
+    </div>
+    <div class="fila" style="flex-wrap:nowrap">
+      <button id="btnApagar" class="btn btn-sm" title="Apaga el servo y el sensor para ahorrar energía">⏻ Apagar</button>
+      <button id="btnParo" class="paro" aria-label="Paro de emergencia">
+        <span class="tapa" id="paroIcono"><i>✋</i></span>
+        <span id="paroTxt">Paro de emergencia</span>
+        <kbd>Esc</kbd>
+      </button>
+    </div>
+  </div>
+</div>
+
+<main class="pagina pila">
+  <div id="avisoNavegador" class="aviso warn oculto">
+    Este navegador no permite conectar el Arduino por USB (Web Serial API). Abre esta página en <b>Google Chrome</b> o <b>Microsoft Edge</b> de computadora. Mientras tanto puedes usar <b>Simular limón</b>.
+  </div>
+
+  <div class="fila entre">
+    <div>
+      <h1 style="font-size:clamp(24px,4vw,34px)">Panel del operador</h1>
+      <p class="muted" style="margin-top:6px">Cada limón que clasifica la faja queda registrado en el día y lo ven el stand y el admin en vivo.</p>
+    </div>
+    <div class="fila">
+      <span id="statusPill" class="pill mal" role="status"><i class="dot"></i><span id="statusText">Arduino desconectado</span></span>
+      <button id="btnConectar" class="btn btn-primario">🔌 Conectar Arduino</button>
+      <button id="btnAyuda" class="btn">❓ Ayuda</button>
+    </div>
+  </div>
+
+  <div class="grid g-7-5">
+    <!-- ===== Línea de clasificación ===== -->
+    <section class="panel pila" id="panelLinea">
+      <div class="fila entre">
+        <h2>Línea de clasificación</h2>
+        <span id="ultimoHora" class="muted" style="font-size:13px">Esperando el primer limón</span>
+      </div>
+      <div class="plano">
+        <svg id="pista" viewBox="0 0 760 230" role="img" aria-label="Faja que lleva cada limón al compartimento de su categoría">
+          <rect x="16" y="93" width="608" height="18" rx="9" style="fill:var(--surface);stroke:var(--line-2)" stroke-width="1.5"/>
+          <g id="marcasFaja" style="stroke:var(--line-2)" stroke-width="2"></g>
+          <circle cx="26" cy="102" r="15" style="fill:var(--surface);stroke:var(--line-2)" stroke-width="1.5"/>
+          <circle cx="614" cy="102" r="15" style="fill:var(--surface);stroke:var(--line-2)" stroke-width="1.5"/>
+          <g transform="translate(300 0)">
+            <rect x="-40" y="30" width="80" height="34" rx="6" style="fill:var(--surface);stroke:var(--celeste)" stroke-width="2"/>
+            <circle cx="0" cy="47" r="6" style="fill:var(--celeste)"/>
+            <path d="M-16 64 L-26 92 M16 64 L26 92" style="stroke:var(--celeste)" stroke-opacity=".6" stroke-width="1.5" stroke-dasharray="3 4" fill="none"/>
+            <text x="0" y="22" text-anchor="middle" style="fill:var(--muted)" font-size="13" font-family="Public Sans, sans-serif">Sensor de color</text>
+          </g>
+          <g id="ramas" fill="none" stroke-width="2" stroke-opacity=".5"></g>
+          <g id="compartimentos"></g>
+          <g id="servoBelt">
+            <rect x="606" y="118" width="30" height="22" rx="4" style="fill:var(--surface);stroke:var(--celeste)" stroke-width="1.5"/>
+            <text x="621" y="133" text-anchor="middle" style="fill:var(--celeste-deep)" font-size="9" font-weight="600" font-family="Public Sans, sans-serif">SERVO</text>
+            <g id="paleta" style="transform-origin:621px 102px; transition: transform .6s cubic-bezier(.3,.7,.3,1);">
+              <line x1="621" y1="102" x2="660" y2="102" style="stroke:var(--celeste-deep)" stroke-width="6" stroke-linecap="round"/>
+            </g>
+            <circle cx="621" cy="102" r="5" style="fill:var(--celeste-deep)"/>
+          </g>
+          <g id="bola" style="opacity:0; transform: translate(40px,102px);">
+            <circle id="bolaC" r="12" fill="#cbd5e1" stroke-width="2.5" style="stroke:var(--text)"/>
+          </g>
+        </svg>
+      </div>
+      <div class="grid g4" id="contadores"></div>
+      <div>
+        <h3 style="margin-bottom:8px">Seguimiento del último limón</h3>
+        <ol id="timeline" class="pasos" aria-live="polite"></ol>
+      </div>
+    </section>
+
+    <!-- ===== Control ===== -->
+    <section class="panel pila" id="panelControl">
+      <h2>Control</h2>
+      <div class="modo-fila">
+        <span id="lblManual">Manual</span>
+        <label class="switch"><input type="checkbox" id="modeToggle" checked aria-label="Modo automático (activado) o manual (desactivado)"><span class="pista-sw"></span></label>
+        <span id="lblAuto">Automático</span>
+      </div>
+      <div class="dial-wrap">
+        <svg viewBox="0 0 220 150" role="img" aria-label="Posición del servomotor">
+          <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" style="stroke:var(--line)" stroke-width="12" stroke-linecap="round"/>
+          <g id="dialMarcas"></g>
+          <g id="servoArm" style="transform-origin:110px 110px; transition: transform .6s cubic-bezier(.3,.7,.3,1);">
+            <line x1="110" y1="110" x2="38" y2="110" style="stroke:var(--celeste-deep)" stroke-width="6" stroke-linecap="round"/>
+          </g>
+          <circle cx="110" cy="110" r="11" style="fill:var(--celeste-deep)"/>
+          <circle cx="110" cy="110" r="4" style="fill:var(--surface)"/>
+          <text id="servoTxt" x="110" y="143" text-anchor="middle" style="fill:var(--text)" font-size="24" font-weight="700" font-family="Sora, sans-serif">90°</text>
+        </svg>
+      </div>
+      <div>
+        <div class="fila entre"><label for="servoSlider" style="font-weight:600">Servomotor</label><b id="servoValor" style="color:var(--celeste-deep)">90°</b></div>
+        <input type="range" id="servoSlider" min="0" max="180" value="90" style="margin-top:12px">
+        <div class="fila entre muted mono" style="font-size:11px;margin-top:6px"><span>0°</span><span>90°</span><span>180°</span></div>
+        <p id="servoNota" class="muted" style="font-size:13px;margin-top:8px"></p>
+      </div>
+      <div class="grid g2" style="gap:8px">
+        <button id="btnSimular" class="btn btn-negro">🧪 Simular limón</button>
+        <button id="btnDemo" class="btn" aria-pressed="false">▶ Demo automática</button>
+        <button id="btnCalibrar" class="btn" title="Mide el fondo sin limón">Calibrar fondo</button>
+        <button id="btnReiniciar" class="btn">Reiniciar este panel</button>
+        <button id="btnCSV" class="btn" style="grid-column:1/-1">Descargar registro de esta sesión (CSV)</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid g2">
+    <section class="panel pila">
+      <h2>Último limón</h2>
+      <div id="ultimoSwatch" style="height:110px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:12px;background:var(--surface-2);border:1.5px dashed var(--line-2)">
+        <span id="ultimoGlifo"></span>
+        <span id="ultimoTexto" class="display" style="font-size:30px;font-weight:700;color:var(--muted)">Sin detecciones</span>
+      </div>
+      <div>
+        <div class="fila entre" style="margin-bottom:8px"><h3>Lectura del sensor en vivo</h3><span id="rgbSwatch" style="width:26px;height:26px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line-2)"></span></div>
+        <div style="display:grid;gap:8px">
+          <div class="rgb-fila"><span style="width:12px;color:#d92d3a">R</span><div class="pista-rgb"><i id="barR" style="background:#d92d3a"></i></div><span id="valR" style="width:30px;text-align:right" class="muted">0</span></div>
+          <div class="rgb-fila"><span style="width:12px;color:#2f9e4f">G</span><div class="pista-rgb"><i id="barG" style="background:#2f9e4f"></i></div><span id="valG" style="width:30px;text-align:right" class="muted">0</span></div>
+          <div class="rgb-fila"><span style="width:12px;color:#2563eb">B</span><div class="pista-rgb"><i id="barB" style="background:#2563eb"></i></div><span id="valB" style="width:30px;text-align:right" class="muted">0</span></div>
+        </div>
+        <p class="muted" style="font-size:13px;margin-top:10px">Si una categoría se confunde, mira aquí qué valores entrega el sensor y ajusta los umbrales del sketch.</p>
+      </div>
+    </section>
+
+    <section class="panel pila">
+      <h2>Hoy en toda la planta</h2>
+      <div class="grid g2" style="gap:10px">
+        <div class="kpi"><div class="v" id="hoyEntran">0</div><div class="t">Entraron</div><div class="d">limones que llegaron a la faja</div></div>
+        <div class="kpi"><div class="v" id="hoySalen">0</div><div class="t">Salieron clasificados</div><div class="d">desviados a su compartimento</div></div>
+        <div class="kpi"><div class="v" id="hoyAprov">0 %</div><div class="t">Aprovechables</div><div class="d">verde + amarillo</div></div>
+        <div class="kpi"><div class="v" id="hoyDesc">0</div><div class="t">Descarte</div><div class="d">podridos o dañados</div></div>
+      </div>
+      <p class="muted" style="font-size:13px">Incluye lo del operador y los lotes de prueba de los visitantes. <a href="admin.html">Ver el registro completo (admin)</a>.</p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="fila entre" style="margin-bottom:12px"><h2>Registro de eventos</h2><button id="btnLimpiarLog" class="btn btn-sm">Limpiar</button></div>
+    <div id="log" class="log" aria-live="polite"></div>
+  </section>
+</main>
+
+<!-- Ayuda -->
+<div id="modalAyuda" class="modal oculto" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+  <div class="modal-caja">
+    <div class="modal-cab"><h2 id="modalTitulo">Ayuda del operador</h2><button id="btnCerrarAyuda" class="btn btn-sm" aria-label="Cerrar">✕</button></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="guia" aria-selected="true">Cómo se usa</button>
+      <button class="tab" role="tab" data-tab="seguridad" aria-selected="false">Seguridad</button>
+      <button class="tab" role="tab" data-tab="problemas" aria-selected="false">Si algo falla</button>
+      <button class="tab" role="tab" data-tab="glosario" aria-selected="false">Glosario</button>
+    </div>
+    <div class="modal-cuerpo">
+      <div class="tabpanel" id="tab-guia">
+        <ol class="lista-ayuda">
+          <li>Carga <code>arduino_sketch.ino</code> en el Arduino y <b>cierra el Monitor Serie</b> (si está abierto, la web no puede conectarse).</li>
+          <li>Pulsa <b>Conectar Arduino</b> y elige el puerto (COM en Windows, <code>/dev/cu.usbmodem…</code> en Mac).</li>
+          <li>Con la faja vacía, pulsa <b>Calibrar fondo</b>.</li>
+          <li>Pasa un limón: el panel cuenta, mueve el servo y guarda el evento en el registro del día.</li>
+          <li>En <b>Manual</b> puedes mover el servo con el deslizador para probar cada compartimento.</li>
+          <li>Sin Arduino puedes usar <b>Simular limón</b> o la <b>Demo automática</b>.</li>
+        </ol>
+      </div>
+      <div class="tabpanel oculto" id="tab-seguridad">
+        <div class="pila" style="--x:0">
+          <div class="caja"><b>Paro de emergencia</b><p class="muted" style="margin-top:4px">Botón rojo o tecla <kbd>Esc</kbd>. Detiene la faja y deja el servo quieto. El Arduino confirma con <code>STATE:STOP</code>; si no confirma en 1,5 s la página te avisa que cortes la alimentación. <b>Esc solo detiene</b>: para reanudar hay que hacer clic.</p></div>
+          <div class="caja"><b>Apagar</b><p class="muted" style="margin-top:4px">Modo de bajo consumo: el servo se desconecta (sin pulsos no gasta ni vibra) y el sensor entra en reposo. Se vuelve con <b>Encender</b>.</p></div>
+          <div class="caja"><b>Paro remoto</b><p class="muted" style="margin-top:4px">El admin puede mandar un paro desde su pantalla. Nunca puede reanudar a distancia: eso siempre lo hace una persona junto a la máquina.</p></div>
+          <div class="caja"><b>Botón físico</b><p class="muted" style="margin-top:4px">El sketch acepta un pulsador en D7 (a GND). Detiene aunque falle el navegador. En un equipo real, el paro debe cortar la alimentación del motor por hardware.</p></div>
+        </div>
+      </div>
+      <div class="tabpanel oculto" id="tab-problemas">
+        <ul class="lista-ayuda">
+          <li><b>No aparece el puerto:</b> prueba otro cable USB (algunos solo cargan), instala el driver CH340 si tu placa es clon.</li>
+          <li><b>«No se pudo abrir el puerto»:</b> cierra el Monitor Serie y otras pestañas que usen el Arduino.</li>
+          <li><b>No clasifica bien:</b> protege el sensor de la luz externa, calibra el fondo y revisa los números RGB del panel.</li>
+          <li><b>El Arduino se reinicia al mover el servo:</b> alimenta el servo aparte con GND común o añade un capacitor de 470 µF.</li>
+          <li><b>Sale «No se encontró el TCS34725»:</b> revisa SDA (A4), SCL (A5) y 5 V.</li>
+          <li><b>El admin no ve los datos:</b> mira el aviso de arriba; en «Modo local» los datos no salen de este navegador. Configura Firebase en <code>js/config.js</code>.</li>
+        </ul>
+      </div>
+      <div class="tabpanel oculto" id="tab-glosario">
+        <div class="pila">
+          <div class="caja"><b>Web Serial API</b><p class="muted">Permite que una página en Chrome o Edge hable con el puerto USB del Arduino, siempre con tu permiso.</p></div>
+          <div class="caja"><b>PWM del servo</b><p class="muted">Una señal de pulsos cada 20 ms. El ancho del pulso (≈0,5 a 2,4 ms) decide el ángulo de 0° a 180°.</p></div>
+          <div class="caja"><b>TCS34725</b><p class="muted">Sensor de color por I2C con ADC de 16 bits y filtro infrarrojo. (El TCS3200 del video entrega una frecuencia en vez de un número digital.)</p></div>
+          <div class="caja"><b>Entrada y salida</b><p class="muted">Entrada: el limón llegó a la faja. Salida: ya fue clasificado y desviado a su compartimento.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/common.js"></script>
+<script>
+const sesion = SL.exigirRol('operador', 'admin');
+SL.cabecera('operador.html');
+
+/* =========================================================
+   ESTADO
+   ========================================================= */
+const BAUD = 9600;
+const NOMBRES = SL.ORDEN;
+const $ = id => document.getElementById(id);
+let port = null, reader = null, writer = null, keepReading = false, loopPromise = null;
+let conectado = false, modoAuto = true, estado = 'run';
+let contadores = Object.fromEntries(NOMBRES.map(n => [n, 0]));
+let eventosSesion = [], entradasPend = 0;
+let ultimoEnvioServo = 0, timerServo = null, timerConfirmacion = null;
+let simulando = false, demoTimer = null, ultimoNombre = null;
+const quien = (sesion && sesion.nombre) || 'Operador';
+
+/* =========================================================
+   REGISTRO
+   ========================================================= */
+function log(tipo, msg) {
+  const est = { sys: ['·', '#8fa6b6'], rx: ['◄', '#67d4ff'], tx: ['►', '#c4a7ff'], evt: ['●', '#5fdc86'], warn: ['!', '#ffd23f'], err: ['✖', '#ff7b8c'] };
+  const [s, c] = est[tipo] || est.sys;
+  const l = document.createElement('div');
+  l.style.color = c; l.textContent = `[${SL.hora()}] ${s} ${msg}`;
+  const box = $('log'); box.appendChild(l);
+  while (box.children.length > 300) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+$('btnLimpiarLog').addEventListener('click', () => { $('log').innerHTML = ''; });
+
+/* =========================================================
+   PISTA, CONTADORES, TIMELINE
+   ========================================================= */
+const NS = 'http://www.w3.org/2000/svg';
+const BIN_Y = { VERDE: 12, AMARILLO: 86, DESCARTE: 160 };
+const PISTA = { inicio: [40, 102], sensor: [300, 102], salida: [632, 102], bin: Object.fromEntries(NOMBRES.map(n => [n, [706, BIN_Y[n] + 29]])) };
+
+function construirPista() {
+  const marcas = $('marcasFaja'), ramas = $('ramas'), comp = $('compartimentos');
+  [marcas, ramas, comp].forEach(g => g.innerHTML = '');
+  for (let x = 50; x < 610; x += 26) {
+    const l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', x); l.setAttribute('x2', x); l.setAttribute('y1', 98); l.setAttribute('y2', 106); marcas.appendChild(l);
+  }
+  NOMBRES.forEach(n => {
+    const col = SL.color(n), y = BIN_Y[n];
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', `M 632 102 C 650 102, 650 ${y + 29}, 666 ${y + 29}`); p.setAttribute('stroke', col); ramas.appendChild(p);
+    const g = document.createElementNS(NS, 'g'); g.id = 'bin-' + n;
+    g.innerHTML = `
+      <rect x="666" y="${y}" width="86" height="58" rx="7" fill="${col}" fill-opacity=".16" stroke="${col}" stroke-width="2"/>
+      <g transform="translate(676 ${y + 9})">${SL.glifo(n, 16)}</g>
+      <text x="696" y="${y + 22}" style="fill:var(--text)" font-size="12.5" font-weight="600" font-family="Public Sans, sans-serif">${SL.CATS[n].nombre}</text>
+      <text x="676" y="${y + 46}" style="fill:var(--muted)" font-size="12" font-family="Public Sans, sans-serif">servo ${SL.CATS[n].angulo}°</text>`;
+    comp.appendChild(g);
+  });
+}
+
+function construirContadores() {
+  const cont = $('contadores'); cont.innerHTML = '';
+  NOMBRES.forEach(n => {
+    const c = SL.CATS[n], card = document.createElement('div');
+    card.className = 'cont'; card.id = 'card-' + n;
+    card.innerHTML = `
+      <div class="et">${SL.glifo(n, 14)}<span>${c.nombre}</span></div>
+      <div id="cnt-${n}" class="num">0</div>
+      <div id="pct-${n}" class="sub">0 %</div>
+      <div class="barra"><i id="bar-${n}" style="width:0%;background:${SL.color(n)}"></i></div>`;
+    cont.appendChild(card);
+  });
+  const t = document.createElement('div'); t.className = 'cont neutro';
+  t.innerHTML = `<div class="et muted">Total</div><div id="cnt-TOTAL" class="num">0</div><div class="sub">en este panel</div><div id="ritmo" class="sub">0 en el último minuto</div>`;
+  cont.appendChild(t);
+}
+const totalObjetos = () => NOMBRES.reduce((s, n) => s + contadores[n], 0);
+function renderContadores() {
+  const t = totalObjetos();
+  NOMBRES.forEach(n => {
+    const pct = t ? Math.round(contadores[n] * 100 / t) : 0;
+    $('cnt-' + n).textContent = contadores[n]; $('pct-' + n).textContent = pct + ' %'; $('bar-' + n).style.width = pct + '%';
+  });
+  $('cnt-TOTAL').textContent = t;
+  const m = eventosSesion.filter(e => e.ts > Date.now() - 60000).length;
+  $('ritmo').textContent = `${m} en el último minuto`;
+}
+setInterval(() => { if ($('ritmo')) renderContadores(); }, 5000);
+
+const PASOS = ['Llega a la faja', 'El sensor lee el color', 'El Arduino decide', 'El servo desvía el limón', 'Cae en su compartimento y se registra'];
+function construirTimeline() {
+  $('timeline').innerHTML = PASOS.map((t, i) => `<li class="paso" id="paso-${i}"><span class="chk" aria-hidden="true">✓</span><span>${t}</span></li>`).join('');
+}
+function marcarPaso(hasta, terminado = false) {
+  PASOS.forEach((_, i) => {
+    const el = $('paso-' + i);
+    el.classList.toggle('hecho', i < hasta || (terminado && i <= hasta));
+    el.classList.toggle('activo', i === hasta && !terminado);
+  });
+}
+
+/* ---------- animación del limón ---------- */
+let secId = 0;
+const bola = $('bola'), bolaC = $('bolaC');
+const cancelarBola = () => bola.getAnimations().forEach(a => a.cancel());
+const espera = ms => new Promise(r => setTimeout(r, ms));
+function moverBola(a, b, ms, easing = 'ease-in-out') {
+  return bola.animate([{ transform: `translate(${a[0]}px, ${a[1]}px)` }, { transform: `translate(${b[0]}px, ${b[1]}px)` }], { duration: ms, easing, fill: 'forwards' }).finished;
+}
+function destello(n) { $('bin-' + n).querySelector('rect').animate([{ fillOpacity: .6 }, { fillOpacity: .16 }], { duration: 700, easing: 'ease-out' }); }
+
+async function secuencia(nombre, desdeInicio, alLeer) {
+  const id = ++secId; cancelarBola();
+  bola.style.opacity = 1; bolaC.setAttribute('fill', '#cbd5e1');
+  try {
+    if (desdeInicio) { marcarPaso(0); await moverBola(PISTA.inicio, PISTA.sensor, 1000); }
+    else bola.style.transform = `translate(${PISTA.sensor[0]}px, ${PISTA.sensor[1]}px)`;
+    if (id !== secId) return;
+    marcarPaso(1); bolaC.setAttribute('fill', SL.color(nombre)); alLeer && alLeer();
+    await espera(350); if (id !== secId) return;
+    marcarPaso(2); await espera(250); if (id !== secId) return;
+    marcarPaso(3);
+    await moverBola(PISTA.sensor, PISTA.salida, 700);
+    await moverBola(PISTA.salida, PISTA.bin[nombre], 550, 'ease-in');
+    if (id === secId) { destello(nombre); marcarPaso(4, true); }
+  } catch (_) { /* cancelada por un paro */ }
+  finally { if (id === secId) bola.style.opacity = 0; }
+}
+function detenerAnimacion() { marcarPaso(-1); secId++; cancelarBola(); bola.style.opacity = 0; }
+
+/* =========================================================
+   SERVO
+   ========================================================= */
+function dibujarMarcasDial() {
+  const g = $('dialMarcas'); g.innerHTML = '';
+  NOMBRES.forEach(n => {
+    const a = SL.CATS[n].angulo * Math.PI / 180, x = 110 - 90 * Math.cos(a), y = 110 - 90 * Math.sin(a);
+    const w = document.createElementNS(NS, 'g'); w.setAttribute('transform', `translate(${x - 8} ${y - 8})`); w.innerHTML = SL.glifo(n, 16); g.appendChild(w);
+  });
+}
+function setServoUI(ang) {
+  ang = Math.max(0, Math.min(180, Math.round(ang)));
+  $('servoArm').style.transform = `rotate(${ang}deg)`;
+  $('paleta').style.transform = `rotate(${(ang - 90) * 0.55}deg)`;
+  $('servoTxt').textContent = ang + '°'; $('servoValor').textContent = ang + '°';
+  if (document.activeElement !== $('servoSlider')) $('servoSlider').value = ang;
+}
+function enviarServoLimitado(a) {
+  const ahora = Date.now(); clearTimeout(timerServo);
+  if (ahora - ultimoEnvioServo >= 80) { ultimoEnvioServo = ahora; enviar(`SERVO:${a}`, false); }
+  else timerServo = setTimeout(() => { ultimoEnvioServo = Date.now(); enviar(`SERVO:${a}`, false); }, 80);
+}
+$('servoSlider').addEventListener('input', () => {
+  const a = +$('servoSlider').value; setServoUI(a);
+  if (!modoAuto && estado === 'run') enviarServoLimitado(a);
+});
+$('servoSlider').addEventListener('change', () => {
+  if (modoAuto || estado !== 'run') return;
+  const a = +$('servoSlider').value;
+  if (conectado) enviar(`SERVO:${a}`, true); else log('sys', `Servo (solo en pantalla) → ${a}°. Conecta el Arduino para moverlo de verdad.`);
+});
+
+/* =========================================================
+   ESTADO DE LA MÁQUINA + PARO
+   ========================================================= */
+const TEXTOS = {
+  run: { titulo: 'En marcha', paro: 'Paro de emergencia', icono: '✋' },
+  stop: { titulo: 'Pausa de emergencia', paro: 'Reanudar', icono: '▶' },
+  off: { titulo: 'Apagado', paro: 'Encender', icono: '⏻' }
+};
+function aplicarControlesUI() {
+  const marcha = estado === 'run';
+  $('modeToggle').disabled = !marcha;
+  $('servoSlider').disabled = !marcha || modoAuto;
+  $('btnSimular').disabled = !marcha || simulando;
+  $('btnDemo').disabled = !marcha && !demoTimer;
+  $('btnCalibrar').disabled = !marcha;
+  $('lblAuto').style.cssText = modoAuto ? 'font-weight:700;color:var(--celeste-deep)' : 'color:var(--muted)';
+  $('lblManual').style.cssText = modoAuto ? 'color:var(--muted)' : 'font-weight:700;color:var(--celeste-deep)';
+  $('servoNota').textContent = !marcha ? 'El servo está desactivado mientras la máquina no esté en marcha.'
+    : modoAuto ? 'En automático el Arduino mueve el servo según la categoría. Cambia a Manual para usar el deslizador.'
+      : 'Modo manual: el servo sigue el ángulo del deslizador.';
+  $('estadoSub').dataset.base = modoAuto ? 'Clasificando en modo automático' : 'Modo manual: tú controlas el servo';
+}
+function publicarEstado() { DB.setEstado({ maquina: estado, modo: modoAuto ? 'AUTO' : 'MANUAL', operador: quien, online: true, arduino: conectado }); }
+
+function setEstado(nuevo, origen = 'LOCAL') {
+  const previo = estado; estado = nuevo;
+  const t = TEXTOS[nuevo];
+  $('maquina').dataset.estado = nuevo;
+  $('estadoTitulo').textContent = t.titulo; $('paroTxt').textContent = t.paro;
+  $('btnParo').setAttribute('aria-label', t.paro); $('paroIcono').innerHTML = `<i>${t.icono}</i>`;
+  $('btnApagar').style.display = nuevo === 'off' ? 'none' : '';
+  document.title = nuevo === 'run' ? 'Operador · Smartlog' : `${nuevo === 'stop' ? '⛔ Pausa' : '⏻ Apagado'} · Smartlog`;
+  if (nuevo !== 'run') { detenerAnimacion(); if (demoTimer) detenerDemo(); }
+  aplicarControlesUI();
+  $('estadoSub').textContent = nuevo === 'run' ? $('estadoSub').dataset.base
+    : nuevo === 'stop' ? 'Motor y servo detenidos. El sensor no clasifica.' : 'Servo y sensor desactivados para ahorrar energía.';
+  if (nuevo !== 'run' && !conectado) $('estadoSub').textContent += ' (Arduino no conectado)';
+  if (previo !== nuevo) {
+    log(nuevo === 'run' ? 'sys' : 'warn', `Estado: ${t.titulo}${origen === 'ARDUINO' ? ' (confirmado por el Arduino)' : origen === 'REMOTO' ? ' (orden remota del admin)' : ''}`);
+    publicarEstado();
+  }
+}
+function esperarConfirmacion(esperado) {
+  clearTimeout(timerConfirmacion); if (!conectado) return;
+  timerConfirmacion = setTimeout(() => {
+    log('err', `El Arduino no confirmó "${esperado}". Si es una emergencia real, corta la alimentación.`);
+    $('estadoSub').textContent = '⚠ Sin confirmación del Arduino: corta la alimentación';
+  }, 1500);
+}
+function pausaEmergencia(origen = 'LOCAL') { if (estado !== 'run') return; setEstado('stop', origen); enviar('STOP', true); esperarConfirmacion('STATE:STOP'); }
+function reanudar() {
+  const desdeOff = estado === 'off'; setEstado('run'); enviar(desdeOff ? 'ON' : 'RESUME', true); setServoUI(SL.ANGULO_REPOSO);
+}
+function apagar(origen = 'LOCAL') { if (estado === 'off') return; setEstado('off', origen); enviar('OFF', true); esperarConfirmacion('STATE:OFF'); }
+$('btnParo').addEventListener('click', () => (estado === 'run' ? pausaEmergencia() : reanudar()));
+$('btnApagar').addEventListener('click', () => apagar());
+$('modeToggle').addEventListener('change', () => {
+  modoAuto = $('modeToggle').checked; aplicarControlesUI(); publicarEstado();
+  const cmd = modoAuto ? 'MODE:AUTO' : 'MODE:MANUAL';
+  if (conectado) enviar(cmd, true); else log('sys', `Modo ${modoAuto ? 'automático' : 'manual'} (sin Arduino conectado)`);
+});
+
+// Órdenes remotas del admin (solo parar o apagar; nunca reanudar)
+DB.onComando(c => {
+  if (c.tipo === 'STOP' && estado === 'run') { SL.toast('Paro remoto pedido por el admin', 'mal'); pausaEmergencia('REMOTO'); }
+  else if (c.tipo === 'OFF' && estado !== 'off') { SL.toast('Apagado remoto pedido por el admin', 'mal'); apagar('REMOTO'); }
+});
+
+/* =========================================================
+   REGISTRO DE LIMONES (DB)
+   ========================================================= */
+function registrarEntrada(origen) {
+  entradasPend++;
+  DB.pushEvento({ tipo: 'entrada', origen: 'operador', quien, fuente: origen });
+}
+function registrarSalida(cat, origen) {
+  if (!SL.CATS[cat]) { log('warn', 'Categoría desconocida: ' + cat); return; }
+  if (entradasPend > 0) entradasPend--; else DB.pushEvento({ tipo: 'entrada', origen: 'operador', quien, fuente: origen });
+  contadores[cat]++; ultimoNombre = cat; renderContadores();
+  const c = SL.CATS[cat];
+  pintarUltimo();
+  $('ultimoHora').textContent = `Último limón: ${c.nombre.toLowerCase()} a las ${SL.hora()}`;
+  const card = $('card-' + cat); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+  eventosSesion.push({ ts: Date.now(), hora: SL.hora(), categoria: c.nombre, estado: c.estado, origen });
+  DB.pushEvento({ tipo: 'salida', cat, origen: 'operador', quien, fuente: origen });
+  log('evt', `Limón ${c.nombre.toLowerCase()} (${c.estado.toLowerCase()}) clasificado${origen === 'SIM' ? ' · simulado' : ''} · total ${totalObjetos()}`);
+}
+function pintarUltimo() {
+  if (!ultimoNombre) return;
+  const col = SL.color(ultimoNombre), tin = SL.tinta(ultimoNombre);
+  $('ultimoSwatch').style.cssText = `height:110px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:12px;background:${col};border:1.5px solid ${col}`;
+  $('ultimoGlifo').innerHTML = SL.glifo(ultimoNombre, 32, tin);
+  $('ultimoTexto').textContent = SL.CATS[ultimoNombre].nombre; $('ultimoTexto').style.color = tin;
+}
+
+// Totales del día en vivo (toda la planta)
+DB.onEventos(SL.hoy(), arr => {
+  const r = SL.resumir(arr);
+  $('hoyEntran').textContent = r.entradas; $('hoySalen').textContent = r.salidas;
+  $('hoyAprov').textContent = r.pctAprov + ' %'; $('hoyDesc').textContent = r.porCat.DESCARTE;
+});
+
+/* =========================================================
+   WEB SERIAL
+   ========================================================= */
+function setConectado(v) {
+  conectado = v;
+  $('statusPill').className = 'pill ' + (v ? 'ok' : 'mal');
+  $('statusText').textContent = v ? 'Arduino conectado' : 'Arduino desconectado';
+  $('btnConectar').textContent = v ? '⏏ Desconectar' : '🔌 Conectar Arduino';
+  $('btnConectar').className = v ? 'btn' : 'btn btn-primario';
+  publicarEstado();
+}
+async function conectar() {
+  if (!('serial' in navigator)) { log('err', 'Web Serial API no disponible. Usa Chrome o Edge.'); abrirAyuda('problemas'); return; }
+  try { port = await navigator.serial.requestPort(); await port.open({ baudRate: BAUD }); }
+  catch (e) {
+    if (e.name === 'NotFoundError') log('warn', 'Selección de puerto cancelada.');
+    else log('err', `No se pudo abrir el puerto: ${e.message}. ¿Está abierto el Monitor Serie u otra pestaña?`);
+    port = null; return;
+  }
+  reader = port.readable.getReader(); writer = port.writable.getWriter(); keepReading = true;
+  setConectado(true); setEstado('run', 'SYNC');
+  log('sys', `Puerto abierto a ${BAUD} baudios. Esperando al Arduino (se reinicia al conectar)…`);
+  loopPromise = leerLoop();
+  setTimeout(() => { if (conectado) enviar(modoAuto ? 'MODE:AUTO' : 'MODE:MANUAL', true); }, 2500);
+}
+async function leerLoop() {
+  const dec = new TextDecoder(); let buf = '';
+  try {
+    while (keepReading) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i; while ((i = buf.indexOf('\n')) >= 0) { const l = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (l) procesarLinea(l); }
+    }
+  } catch (e) { if (keepReading) log('err', 'Error de lectura: ' + e.message); }
+  finally { try { reader.releaseLock(); } catch (_) {} if (keepReading) { keepReading = false; await cerrarPuerto(); } }
+}
+async function desconectar() {
+  keepReading = false;
+  try { await reader.cancel(); } catch (_) {}
+  try { await loopPromise; } catch (_) {}
+  await cerrarPuerto();
+}
+async function cerrarPuerto() {
+  clearTimeout(timerConfirmacion);
+  try { writer && writer.releaseLock(); } catch (_) {}
+  try { port && await port.close(); } catch (_) {}
+  port = reader = writer = null; setConectado(false); log('sys', 'Puerto cerrado.');
+  if (estado !== 'run') setEstado(estado);
+}
+async function enviar(texto, registrar = true) {
+  if (!conectado || !writer) { if (registrar) log('warn', `Sin conexión: no se envió "${texto}"`); return false; }
+  try { await writer.write(new TextEncoder().encode(texto + '\n')); if (registrar) log('tx', texto); return true; }
+  catch (e) { log('err', 'Error al enviar: ' + e.message); return false; }
+}
+function procesarLinea(linea) {
+  const [clave, ...resto] = linea.split(':'); const valor = resto.join(':').trim();
+  switch (clave.toUpperCase()) {
+    case 'READY': log('rx', 'READY (Arduino listo)'); enviar(modoAuto ? 'MODE:AUTO' : 'MODE:MANUAL', true); break;
+    case 'STATE': {
+      clearTimeout(timerConfirmacion); log('rx', linea);
+      const n = { RUN: 'run', STOP: 'stop', OFF: 'off' }[valor.toUpperCase()];
+      if (n) setEstado(n, n !== estado ? 'ARDUINO' : 'SYNC'); break;
+    }
+    case 'ENTRA': log('rx', linea); if (estado === 'run') registrarEntrada('ARDUINO'); break;
+    case 'COLOR': {
+      log('rx', linea); const n = valor.toUpperCase();
+      if (!SL.CATS[n]) { log('warn', 'Categoría desconocida recibida: ' + n); break; }
+      if (estado === 'run') secuencia(n, false, () => { setServoUI(SL.CATS[n].angulo); registrarSalida(n, 'ARDUINO'); }).then(() => { if (estado === 'run') setServoUI(SL.ANGULO_REPOSO); });
+      break;
+    }
+    case 'RGB': { const [r, g, b] = valor.split(',').map(x => Math.max(0, Math.min(255, parseInt(x, 10) || 0))); actualizarRGB(r, g, b); break; }
+    case 'SERVO': { const a = parseInt(valor, 10); if (!isNaN(a)) setServoUI(a); break; }
+    case 'MODE': log('rx', linea); modoAuto = valor.toUpperCase() === 'AUTO'; $('modeToggle').checked = modoAuto; aplicarControlesUI(); publicarEstado(); break;
+    case 'INFO': log('rx', valor); break;
+    case 'ERROR': log('err', valor); break;
+    default: log('rx', linea);
+  }
+}
+function actualizarRGB(r, g, b) {
+  $('barR').style.width = (r / 255 * 100) + '%'; $('valR').textContent = r;
+  $('barG').style.width = (g / 255 * 100) + '%'; $('valG').textContent = g;
+  $('barB').style.width = (b / 255 * 100) + '%'; $('valB').textContent = b;
+  $('rgbSwatch').style.background = (r + g + b) ? `rgb(${r},${g},${b})` : 'var(--surface-2)';
+}
+if ('serial' in navigator) navigator.serial.addEventListener('disconnect', e => { if (port && e.target === port) log('warn', 'El Arduino fue desconectado del USB.'); });
+else $('avisoNavegador').classList.remove('oculto');
+$('btnConectar').addEventListener('click', () => (conectado ? desconectar() : conectar()));
+$('btnCalibrar').addEventListener('click', () => { if (conectado) enviar('CAL', true); else log('sys', 'Sin Arduino conectado: no hay nada que calibrar.'); });
+
+/* =========================================================
+   SIMULACIÓN Y DEMO
+   ========================================================= */
+const BASE_RGB = { VERDE: [70, 170, 60], AMARILLO: [225, 195, 40], DESCARTE: [115, 80, 50] };
+function categoriaAlAzar() { const r = Math.random(); return r < .55 ? 'VERDE' : r < .83 ? 'AMARILLO' : 'DESCARTE'; }
+async function simular() {
+  if (estado !== 'run') { log('warn', 'La máquina no está en marcha: no se puede simular.'); return; }
+  if (simulando) return;
+  simulando = true; aplicarControlesUI();
+  const n = categoriaAlAzar(), base = BASE_RGB[n];
+  const j = v => Math.max(0, Math.min(255, v + Math.round((Math.random() - .5) * 30)));
+  log('sys', 'Simulación: llega un limón a la faja'); registrarEntrada('SIM');
+  await secuencia(n, true, () => { actualizarRGB(j(base[0]), j(base[1]), j(base[2])); setServoUI(SL.CATS[n].angulo); registrarSalida(n, 'SIM'); });
+  if (estado === 'run') setServoUI(SL.ANGULO_REPOSO);
+  simulando = false; aplicarControlesUI();
+}
+$('btnSimular').addEventListener('click', () => simular());
+function detenerDemo() { clearInterval(demoTimer); demoTimer = null; $('btnDemo').textContent = '▶ Demo automática'; $('btnDemo').setAttribute('aria-pressed', 'false'); }
+$('btnDemo').addEventListener('click', () => {
+  if (demoTimer) { detenerDemo(); log('sys', 'Demo automática detenida.'); return; }
+  if (estado !== 'run') { log('warn', 'Reanuda la máquina para iniciar la demo.'); return; }
+  $('btnDemo').textContent = '⏹ Detener demo'; $('btnDemo').setAttribute('aria-pressed', 'true');
+  log('sys', 'Demo automática: llega un limón nuevo cada ~4 segundos.');
+  simular(); demoTimer = setInterval(() => { if (estado !== 'run') detenerDemo(); else simular(); }, 4200);
+});
+$('btnReiniciar').addEventListener('click', () => {
+  NOMBRES.forEach(n => contadores[n] = 0); eventosSesion = []; ultimoNombre = null; entradasPend = 0; renderContadores();
+  $('ultimoSwatch').style.cssText = 'height:110px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:12px;background:var(--surface-2);border:1.5px dashed var(--line-2)';
+  $('ultimoGlifo').innerHTML = ''; $('ultimoTexto').textContent = 'Sin detecciones'; $('ultimoTexto').style.color = 'var(--muted)';
+  $('ultimoHora').textContent = 'Esperando el primer limón'; log('sys', 'Panel reiniciado (el registro del día no se borra).');
+});
+$('btnCSV').addEventListener('click', () => {
+  if (!eventosSesion.length) { log('warn', 'Todavía no hay limones en esta sesión.'); return; }
+  const filas = ['Hora,Categoría,Estado,Origen', ...eventosSesion.map(e => `${e.hora},${e.categoria},${e.estado},${e.origen}`)];
+  SL.descargar(`smartlog_operador_${SL.hoy()}.csv`, filas.join('\n'));
+});
+
+/* =========================================================
+   AYUDA, TEMA, TECLADO
+   ========================================================= */
+function activarTab(n) {
+  document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('oculto', p.id !== 'tab-' + n));
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === n));
+}
+const modalAbierto = () => !$('modalAyuda').classList.contains('oculto');
+function abrirAyuda(t = 'guia') { activarTab(t); $('modalAyuda').classList.remove('oculto'); $('btnCerrarAyuda').focus(); }
+function cerrarAyuda() { $('modalAyuda').classList.add('oculto'); }
+$('btnAyuda').addEventListener('click', () => abrirAyuda('guia'));
+$('btnCerrarAyuda').addEventListener('click', cerrarAyuda);
+$('modalAyuda').addEventListener('click', e => { if (e.target === $('modalAyuda')) cerrarAyuda(); });
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => activarTab(t.dataset.tab)));
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (modalAbierto()) cerrarAyuda(); else pausaEmergencia();       // Esc solo detiene, nunca reanuda
+});
+document.addEventListener('sl-tema', () => { construirPista(); construirContadores(); renderContadores(); dibujarMarcasDial(); pintarUltimo(); });
+window.addEventListener('pagehide', () => { try { DB.setEstado({ online: false, arduino: false }); } catch (_) {} });
+
+/* =========================================================
+   INICIO
+   ========================================================= */
+construirPista(); construirContadores(); construirTimeline(); dibujarMarcasDial();
+setServoUI(SL.ANGULO_REPOSO); aplicarControlesUI(); setEstado('run', 'SYNC'); renderContadores(); publicarEstado();
+log('sys', 'Panel listo. Conecta el Arduino o usa «Simular limón».');
+</script>
+</body>
+</html>

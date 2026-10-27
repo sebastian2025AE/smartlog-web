@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fuentes · Smartlog</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="cabecera"></div>
+<main class="pagina pila" style="max-width:860px">
+  <div>
+    <h1 style="font-size:clamp(26px,4vw,38px)">Fuentes y datos</h1>
+    <p class="muted" style="margin-top:8px">De dónde sale la información de contexto y qué es real y qué es de prueba.</p>
+  </div>
+
+  <section class="panel">
+    <h2>Qué es real y qué es simulado</h2>
+    <ul style="margin:12px 0 0;padding-left:20px;display:grid;gap:6px">
+      <li>Los <b>lotes de prueba</b> de los visitantes son simulados: el porcentaje de cada categoría se genera al azar en cada lote.</li>
+      <li>Lo que registra el <b>operador con el Arduino</b> viene del sensor de color de la maqueta.</li>
+      <li>Los datos del sector (hectáreas, toneladas, exportaciones) son de las fuentes de abajo.</li>
+      <li>Los PIN de operador y administrador sirven para el Demo Day; no son seguridad real.</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>Contexto del limón en el Perú</h2>
+    <ul style="margin:12px 0 0;padding-left:20px;display:grid;gap:8px">
+      <li>El Perú tiene unas <b>25 400 hectáreas</b> de limón y produce alrededor de <b>290 250 toneladas al año</b> (11,4 t/ha). Piura concentra el <b>63,5 %</b> del área sembrada.</li>
+      <li>Las normas de calidad del limón (Categoría I y II) piden <b>uniformidad de color y ausencia de defectos</b>; clasificar a mano con poco rigor mezcla fruta de distinta categoría.</li>
+      <li>Hay estudios de clasificación automática del limón sutil peruano con visión artificial y máquinas de vectores de soporte.</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>Referencias</h2>
+    <ol style="margin:12px 0 0;padding-left:20px;display:grid;gap:10px">
+      <li>Agraria.pe. (2024, 3 de diciembre). <i>Piura concentra el 63.5% de las áreas de limón del Perú.</i> <a href="https://agraria.pe">agraria.pe</a></li>
+      <li>Agraria.pe. (2025, 20 de febrero). <i>Panorama de la exportación de limón peruano.</i> <a href="https://www.agraria.pe/index.php/noticias/panorama-de-la-exportacion-de-limon-peruano-38625">agraria.pe</a></li>
+      <li>Agraria.pe. (2024, 2 de febrero). <i>INACAL aprueba requisitos de calidad del limón en su estado natural.</i> <a href="https://agraria.pe/noticias/inacal-aprueba-requisitos-de-calidad-del-limon-en-su-estado--34645">agraria.pe</a></li>
+      <li>Alcarazo-Ibáñez, F., Tuesta-Monteza, V., Mejía-Cabrera, H. I., Callejas, J. C., &amp; Yera, R. (2020). Clasificación automática de limón sutil peruano (<i>Citrus aurantifolia</i>) usando máquinas de vectores de soporte. <i>RECyT, 22</i>(34), 67–76.</li>
+    </ol>
+  </section>
+
+  <section class="panel panel-tinte">
+    <h2>Proyecto</h2>
+    <p style="margin-top:10px">Smartlog · Proyectos Interdisciplinarios II, UTEC. Alineado con el <b>ODS 9: Industria, innovación e infraestructura</b>. Referencia de montaje: <a href="https://www.youtube.com/watch?v=g3i51hdfLaw">Arduino Color Sorter (HowToMechatronics)</a>.</p>
+    <p class="muted" style="margin-top:8px">Equipo: Cruz Hijuela Angel Jhossep, Añanca Esquerre Sebastián Fabricio, Sebastian Alejandro Gonzalez Roque, Gabriel Ernesto Carrillo Enciso y Matias Alonso Garcia Saenz.</p>
+  </section>
+</main>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/common.js"></script>
+<script>SL.cabecera('creditos.html');</script>
+</body>
+</html>

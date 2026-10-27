@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smartlog · Clasificador de limones por color</title>
+<meta name="description" content="Faja transportadora con sensor de color que clasifica limones por maduración. Proyecto de Proyectos Interdisciplinarios II, UTEC.">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .banda { display: flex; flex-wrap: wrap; gap: 10px 28px; margin-top: 26px; padding-top: 20px; border-top: 1px solid #2a3138; }
+  .banda b { font: 700 28px/1 'Sora', sans-serif; color: #fff; display: block; font-variant-numeric: tabular-nums; }
+  .banda span { font-size: 13px; color: #9fb4c3; }
+  .hero-faja { margin-top: 28px; opacity: .95; }
+  .hero-faja svg { width: 100%; max-width: 560px; display: block; }
+  .rol-form { margin-top: 14px; display: grid; gap: 12px; }
+  .paso-n { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--celeste); color: var(--on-celeste); font: 700 14px 'Sora', sans-serif; display: grid; place-items: center; }
+  .como { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 800px) { .como { grid-template-columns: 1fr; } }
+  .cat-fila { display: flex; gap: 12px; align-items: flex-start; }
+  .cat-ico { flex: none; width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; }
+</style>
+</head>
+<body>
+<div id="cabecera"></div>
+
+<main class="pagina pila">
+  <div id="avisoRol" class="aviso warn oculto" role="alert"></div>
+
+  <section class="hero">
+    <h1>Cada limón, <em>en su lugar</em>.</h1>
+    <p>Una faja con sensor de color separa los limones por maduración y deja el resultado a la vista de todos, en tiempo real. Prueba un lote o mira cómo trabaja la planta hoy.</p>
+    <div class="hero-faja" aria-hidden="true">
+      <svg viewBox="0 0 560 90">
+        <rect x="6" y="46" width="430" height="14" rx="7" fill="#1d2329" stroke="#37424b" stroke-width="1.5"/>
+        <circle cx="16" cy="53" r="11" fill="#14181d" stroke="#37424b" stroke-width="1.5"/><circle cx="426" cy="53" r="11" fill="#14181d" stroke="#37424b" stroke-width="1.5"/>
+        <rect x="190" y="8" width="60" height="26" rx="5" fill="#14181d" stroke="#00a3e0" stroke-width="2"/><circle cx="220" cy="21" r="5" fill="#00a3e0"/>
+        <circle cx="90" cy="38" r="9" fill="#cbd5e1"/>
+        <path d="M436 53 C470 53 470 14 500 14 M436 53 L500 53 M436 53 C470 53 470 78 500 78" fill="none" stroke="#37424b" stroke-width="2"/>
+        <circle cx="520" cy="14" r="11" fill="#4cc26a"/><path d="M520 43 L531 63 H509 Z" transform="translate(0 -10)" fill="#ffd23f"/><rect x="509" y="67" width="22" height="22" rx="3" fill="#b9835a"/>
+      </svg>
+    </div>
+    <div class="banda" aria-live="polite">
+      <div><b id="hEntran">0</b><span>entraron hoy</span></div>
+      <div><b id="hSalen">0</b><span>clasificados hoy</span></div>
+      <div><b id="hAprov">0 %</b><span>aprovechables</span></div>
+      <div><b id="hVisit">0</b><span>visitantes hoy</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom:14px">¿Cómo quieres entrar?</h2>
+    <div class="grid g3" style="align-items:start">
+
+      <div class="panel">
+        <button class="rol panel-btn" data-rol="jurado" aria-expanded="false" aria-controls="form-jurado" style="background:none;border:0;padding:0">
+          <span class="ic" aria-hidden="true">🍋</span>
+          <h3 style="font-size:18px">Probar un lote</h3>
+          <span class="muted">Visitante o jurado. Genera un lote de prueba y mira al final cuántos limones se aprovechan y cuántos están podridos.</span>
+        </button>
+        <form id="form-jurado" class="rol-form oculto" novalidate>
+          <label class="campo"><span>Tu nombre</span><input type="text" id="jNombre" autocomplete="name" maxlength="40" required></label>
+          <label class="campo"><span>Institución o negocio (opcional)</span><input type="text" id="jInst" maxlength="50" autocomplete="organization"></label>
+          <p class="error-txt" id="jError" role="alert"></p>
+          <button class="btn btn-primario" type="submit">Entrar y generar mi lote</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <button class="rol panel-btn" data-rol="operador" aria-expanded="false" aria-controls="form-operador" style="background:none;border:0;padding:0">
+          <span class="ic" aria-hidden="true">🕹️</span>
+          <h3 style="font-size:18px">Operador</h3>
+          <span class="muted">Conecta el Arduino por USB, controla la faja y tiene el paro de emergencia.</span>
+        </button>
+        <form id="form-operador" class="rol-form oculto" novalidate>
+          <label class="campo"><span>Tu nombre</span><input type="text" id="oNombre" maxlength="40" autocomplete="name" required></label>
+          <label class="campo"><span>PIN</span><input type="password" id="oPin" inputmode="numeric" autocomplete="off" maxlength="12" required></label>
+          <p class="error-txt" id="oError" role="alert"></p>
+          <button class="btn btn-negro" type="submit">Entrar como operador</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <button class="rol panel-btn" data-rol="admin" aria-expanded="false" aria-controls="form-admin" style="background:none;border:0;padding:0">
+          <span class="ic" aria-hidden="true">📊</span>
+          <h3 style="font-size:18px">Administrador</h3>
+          <span class="muted">Registro del día: cuántos limones entran y salen, por hora, visitantes y exportación a Excel.</span>
+        </button>
+        <form id="form-admin" class="rol-form oculto" novalidate>
+          <label class="campo"><span>PIN</span><input type="password" id="aPin" inputmode="numeric" autocomplete="off" maxlength="12" required></label>
+          <p class="error-txt" id="aError" role="alert"></p>
+          <button class="btn btn-negro" type="submit">Entrar al panel</button>
+        </form>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:14px">¿Vas a proyectar en el stand? Abre la <a href="stand.html"><b>pantalla del stand</b></a>: no pide clave y se actualiza sola.</p>
+    <div id="continuar" class="aviso info oculto" style="margin-top:14px"></div>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom:14px">Cómo funciona</h2>
+    <div class="como">
+      <div class="panel"><div class="fila" style="flex-wrap:nowrap;align-items:flex-start"><span class="paso-n">1</span><div><h3>Entra el limón</h3><p class="muted" style="margin-top:4px">Llega a la faja y se registra como <b>entrada</b>.</p></div></div></div>
+      <div class="panel"><div class="fila" style="flex-wrap:nowrap;align-items:flex-start"><span class="paso-n">2</span><div><h3>El sensor mide el color</h3><p class="muted" style="margin-top:4px">El Arduino compara rojo, verde y azul y decide la categoría.</p></div></div></div>
+      <div class="panel"><div class="fila" style="flex-wrap:nowrap;align-items:flex-start"><span class="paso-n">3</span><div><h3>Un servo lo desvía</h3><p class="muted" style="margin-top:4px">Cae en su compartimento y queda como <b>salida</b> clasificada.</p></div></div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Las tres categorías</h2>
+    <div class="grid g3" id="cats" style="margin-top:14px"></div>
+    <p class="muted" style="margin-top:14px;font-size:13px">Aprovechables = verde + amarillo. Podridos o dañados = descarte. Datos de contexto y fuentes en <a href="creditos.html">Fuentes</a>.</p>
+  </section>
+
+  <p class="muted" style="font-size:13px">Prototipo universitario de Proyectos Interdisciplinarios II (UTEC). Los lotes de prueba son simulados.</p>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/common.js"></script>
+<script>
+SL.cabecera('index.html');
+const $ = id => document.getElementById(id);
+const CFG = window.SMARTLOG_CONFIG;
+
+/* aviso si lo mandaron de vuelta desde una página con rol */
+const nec = new URLSearchParams(location.search).get('necesitas');
+if (nec) {
+  const quien = { jurado: 'probar un lote', operador: 'el panel del operador', admin: 'el panel de administración' }[nec] || 'esa página';
+  $('avisoRol').textContent = `Para abrir ${quien} primero entra con tu rol.`;
+  $('avisoRol').classList.remove('oculto');
+}
+
+/* categorías */
+function pintarCats() {
+  $('cats').innerHTML = SL.ORDEN.map(id => {
+    const c = SL.CATS[id];
+    return `<div class="cat-fila"><span class="cat-ico" style="background:${SL.color(id)}">${SL.glifo(id, 18, SL.tinta(id))}</span>
+      <div><h3>${c.nombre} <span class="muted" style="font-weight:500">· ${c.estado}</span></h3><p class="muted" style="margin-top:3px">${c.desc}</p></div></div>`;
+  }).join('');
+}
+pintarCats(); document.addEventListener('sl-tema', pintarCats);
+
+/* abrir/cerrar formularios de rol */
+document.querySelectorAll('.panel-btn').forEach(b => b.addEventListener('click', () => {
+  const abierto = b.getAttribute('aria-expanded') === 'true';
+  document.querySelectorAll('.panel-btn').forEach(x => { x.setAttribute('aria-expanded', 'false'); $('form-' + x.dataset.rol).classList.add('oculto'); });
+  if (!abierto) {
+    b.setAttribute('aria-expanded', 'true');
+    const f = $('form-' + b.dataset.rol); f.classList.remove('oculto');
+    const campo = f.querySelector('input'); if (campo) campo.focus();
+  }
+}));
+if (['jurado', 'operador', 'admin'].includes(nec)) document.querySelector(`.panel-btn[data-rol="${nec}"]`).click();
+
+/* entradas */
+$('form-jurado').addEventListener('submit', e => {
+  e.preventDefault();
+  const nombre = $('jNombre').value.trim();
+  if (nombre.length < 2) { $('jError').textContent = 'Escribe tu nombre para entrar.'; $('jNombre').focus(); return; }
+  const institucion = $('jInst').value.trim();
+  DB.registrarVisitante({ nombre, institucion, rol: 'jurado' });
+  SL.guardarSesion({ rol: 'jurado', nombre, institucion, registrado: true, id: Date.now().toString(36) });
+  location.href = 'jurado.html';
+});
+$('form-operador').addEventListener('submit', e => {
+  e.preventDefault();
+  const nombre = $('oNombre').value.trim();
+  if (nombre.length < 2) { $('oError').textContent = 'Escribe tu nombre.'; $('oNombre').focus(); return; }
+  if ($('oPin').value !== CFG.pinOperador) { $('oError').textContent = 'PIN incorrecto. Pídelo al equipo.'; $('oPin').select(); return; }
+  SL.guardarSesion({ rol: 'operador', nombre, id: Date.now().toString(36) });
+  location.href = 'operador.html';
+});
+$('form-admin').addEventListener('submit', e => {
+  e.preventDefault();
+  if ($('aPin').value !== CFG.pinAdmin) { $('aError').textContent = 'PIN incorrecto.'; $('aPin').select(); return; }
+  SL.guardarSesion({ rol: 'admin', nombre: 'Admin', id: Date.now().toString(36) });
+  location.href = 'admin.html';
+});
+
+/* continuar con la sesión guardada */
+const s = SL.sesion();
+if (s) {
+  const dest = { jurado: 'jurado.html', operador: 'operador.html', admin: 'admin.html' }[s.rol];
+  const c = $('continuar'); c.classList.remove('oculto');
+  c.innerHTML = `Tienes una sesión abierta como <b>${SL.esc(s.nombre)}</b> (${s.rol}). <a href="${dest}">Continuar</a> · <a href="#" id="salir">Cerrar sesión</a>`;
+  $('salir').addEventListener('click', ev => { ev.preventDefault(); SL.cerrarSesion(); location.href = 'index.html'; });
+}
+
+/* cifras del día en vivo */
+DB.onEventos(SL.hoy(), arr => {
+  const r = SL.resumir(arr);
+  $('hEntran').textContent = r.entradas; $('hSalen').textContent = r.salidas; $('hAprov').textContent = r.pctAprov + ' %';
+});
+DB.onVisitantes(SL.hoy(), arr => { $('hVisit').textContent = arr.length; });
+</script>
+</body>
+</html>
