@@ -89,9 +89,10 @@
     else if (pct >= 55) { veredicto = 'Lote regular: hay una merma importante.'; nivel = 'medio'; }
     else { veredicto = 'Lote con mucha merma: conviene revisar el origen y el almacenamiento.'; nivel = 'mal'; }
     const rec = [];
-    if (v) rec.push(`${v} limón${v === 1 ? '' : 'es'} verde${v === 1 ? '' : 's'}: venta o exportación.`);
-    if (a) rec.push(`${a} limón${a === 1 ? '' : 'es'} amarillo${a === 1 ? '' : 's'}: aprovecharlos pronto para jugo o procesamiento.`);
-    if (d) rec.push(`${d} limón${d === 1 ? '' : 'es'} podrido${d === 1 ? '' : 's'} o dañado${d === 1 ? '' : 's'}: se retiran para no contaminar al resto.`);
+    const lim = n => n === 1 ? 'limón' : 'limones', s = n => n === 1 ? '' : 's';
+    if (v) rec.push(`${v} ${lim(v)} verde${s(v)}: venta o exportación.`);
+    if (a) rec.push(`${a} ${lim(a)} amarillo${s(a)}: aprovecharlos pronto para jugo o procesamiento.`);
+    if (d) rec.push(`${d} ${lim(d)} podrido${s(d)} o dañado${s(d)}: se retiran para no contaminar al resto.`);
     return { total, verde: v, amarillo: a, descarte: d, aprov, pct, pd, veredicto, nivel, rec };
   };
 
@@ -110,7 +111,7 @@
   /* ---------- Cabecera ---------- */
   const NAV = [
     ['index.html', 'Inicio'],
-    ['jurado.html', 'Lote de prueba'],
+    ['jurado.html', 'Probar la máquina'],
     ['operador.html', 'Operador'],
     ['stand.html', 'Stand'],
     ['admin.html', 'Admin'],
