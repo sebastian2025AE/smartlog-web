@@ -28,7 +28,7 @@
 
   <section class="hero">
     <h1>Cada limón, <em>en su lugar</em>.</h1>
-    <p>Una faja con sensor de color separa los limones por maduración y deja el resultado a la vista de todos, en tiempo real. Prueba un lote o mira cómo trabaja la planta hoy.</p>
+    <p>Una faja con sensor de color separa los limones por maduración y deja el resultado a la vista de todos, en tiempo real. Prueba la máquina o mira cómo trabaja la planta hoy.</p>
     <div class="hero-faja" aria-hidden="true">
       <svg viewBox="0 0 560 90">
         <rect x="6" y="46" width="430" height="14" rx="7" fill="#1d2329" stroke="#37424b" stroke-width="1.5"/>
@@ -54,14 +54,14 @@
       <div class="panel">
         <button class="rol panel-btn" data-rol="jurado" aria-expanded="false" aria-controls="form-jurado" style="background:none;border:0;padding:0">
           <span class="ic" aria-hidden="true">🍋</span>
-          <h3 style="font-size:18px">Probar un lote</h3>
-          <span class="muted">Visitante o jurado. Genera un lote de prueba y mira al final cuántos limones se aprovechan y cuántos están podridos.</span>
+          <h3 style="font-size:18px">Probar la máquina</h3>
+          <span class="muted">Visitante o jurado. Echa limones en el tubo de la máquina y mira al final cuántos limones se aprovechan y cuántos están podridos.</span>
         </button>
         <form id="form-jurado" class="rol-form oculto" novalidate>
           <label class="campo"><span>Tu nombre</span><input type="text" id="jNombre" autocomplete="name" maxlength="40" required></label>
           <label class="campo"><span>Institución o negocio (opcional)</span><input type="text" id="jInst" maxlength="50" autocomplete="organization"></label>
           <p class="error-txt" id="jError" role="alert"></p>
-          <button class="btn btn-primario" type="submit">Entrar y generar mi lote</button>
+          <button class="btn btn-primario" type="submit">Entrar y probar la máquina</button>
         </form>
       </div>
 
@@ -111,7 +111,7 @@
     <p class="muted" style="margin-top:14px;font-size:13px">Aprovechables = verde + amarillo. Podridos o dañados = descarte. Datos de contexto y fuentes en <a href="creditos.html">Fuentes</a>.</p>
   </section>
 
-  <p class="muted" style="font-size:13px">Prototipo universitario de Proyectos Interdisciplinarios II (UTEC). Los lotes de prueba son simulados.</p>
+  <p class="muted" style="font-size:13px">Prototipo universitario de Proyectos Interdisciplinarios II (UTEC). Las pruebas con limones de los visitantes son simuladas.</p>
 </main>
 
 <script src="js/config.js"></script>
@@ -125,7 +125,7 @@ const CFG = window.SMARTLOG_CONFIG;
 /* aviso si lo mandaron de vuelta desde una página con rol */
 const nec = new URLSearchParams(location.search).get('necesitas');
 if (nec) {
-  const quien = { jurado: 'probar un lote', operador: 'el panel del operador', admin: 'el panel de administración' }[nec] || 'esa página';
+  const quien = { jurado: 'probar la máquina', operador: 'el panel del operador', admin: 'el panel de administración' }[nec] || 'esa página';
   $('avisoRol').textContent = `Para abrir ${quien} primero entra con tu rol.`;
   $('avisoRol').classList.remove('oculto');
 }

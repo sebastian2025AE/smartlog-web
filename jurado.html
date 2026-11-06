@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Lote de prueba · Smartlog</title>
+<title>Prueba de la máquina · Smartlog</title>
 <link rel="stylesheet" href="css/app.css">
 <style>
   .seg { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
@@ -35,99 +35,86 @@
 
   <div id="avisoPausa" class="aviso warn oculto" role="alert"></div>
 
-  <!-- ============ 1. PREPARAR ============ -->
-  <section id="vistaPrep" class="panel pila" aria-labelledby="tPrep">
+  <!-- ============ MÁQUINA (tubo + sensor + servo) ============ -->
+  <section id="vistaRun" class="pila" aria-labelledby="tRun">
     <div>
-      <h1 id="tPrep">Prueba la faja con un lote de limones</h1>
-      <p class="muted" style="margin-top:10px;max-width:60ch">
-        Generamos un lote de limones de prueba. La faja los clasifica sola por color y, al terminar, te dice cuántos se pueden aprovechar y cuántos están podridos.
-        Mientras corre, la pantalla del stand y el panel del administrador lo muestran en vivo.
+      <h1 id="tRun" style="font-size:clamp(26px,4.5vw,40px)">Prueba la máquina con limones</h1>
+      <p class="muted" style="margin-top:10px;max-width:62ch">
+        Echa limones en el tubo. Cuando uno llega al final, el sensor lo detecta, lee su color y el servo lo manda a su compartimento.
+        Si no hay ningún limón al final del tubo, la máquina se queda quieta. Cuando quieras, termina y mira cuántos se aprovechan y cuántos están podridos.
       </p>
     </div>
 
-    <div class="grid g2">
-      <fieldset class="seg">
-        <legend>Cuántos limones tiene el lote</legend>
-        <label><input type="radio" name="tam" value="20"><span>20</span></label>
-        <label><input type="radio" name="tam" value="40" checked><span>40</span></label>
-        <label><input type="radio" name="tam" value="60"><span>60</span></label>
-        <label><input type="radio" name="tam" value="100"><span>100</span></label>
-      </fieldset>
-      <fieldset class="seg">
-        <legend>Velocidad de la faja</legend>
-        <label><input type="radio" name="vel" value="1600" checked><span>Normal</span></label>
-        <label><input type="radio" name="vel" value="700"><span>Rápida</span></label>
-      </fieldset>
-    </div>
-
-    <div class="fila">
-      <button id="btnGenerar" class="btn btn-primario btn-grande">Generar lote de prueba</button>
-      <span id="estimado" class="muted" style="font-size:14px"></span>
-    </div>
-  </section>
-
-  <!-- ============ 2. CORRIDA ============ -->
-  <section id="vistaRun" class="oculto pila" aria-labelledby="tRun">
-    <div class="panel pila">
-      <div class="fila entre">
-        <h2 id="tRun">Clasificando tu lote</h2>
-        <button id="btnDetener" class="btn btn-sm">Detener lote</button>
-      </div>
-
-      <div>
-        <div class="fila entre" style="margin-bottom:6px">
-          <b id="progTxt" class="display" style="font-size:18px">Limón 0 de 0</b>
-          <span id="servoTxt" class="muted" style="font-size:13.5px">Servo en reposo · 90°</span>
-        </div>
-        <div class="progreso" role="progressbar" aria-labelledby="progTxt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progBar"><i id="progFill" style="width:0%"></i></div>
-        <p id="progVoz" class="sr" role="status" aria-live="polite"></p>
-      </div>
-
-      <div class="plano">
-        <svg id="pista" viewBox="0 0 760 230" role="img" aria-label="Faja transportadora: cada limón pasa por el sensor de color y el servo lo desvía al compartimento de su categoría">
-          <rect x="16" y="93" width="608" height="18" rx="9" style="fill:var(--surface);stroke:var(--line-2)" stroke-width="1.5"/>
-          <g id="marcasFaja" style="stroke:var(--line-2)" stroke-width="2"></g>
-          <circle cx="26" cy="102" r="15" style="fill:var(--surface-2);stroke:var(--line-2)" stroke-width="1.5"/>
-          <circle cx="614" cy="102" r="15" style="fill:var(--surface-2);stroke:var(--line-2)" stroke-width="1.5"/>
-          <g transform="translate(300 0)">
-            <rect x="-40" y="30" width="80" height="34" rx="6" style="fill:var(--surface);stroke:var(--celeste)" stroke-width="2"/>
-            <circle id="sensorLed" cx="0" cy="47" r="6" style="fill:var(--celeste)"/>
-            <path d="M-16 64 L-26 92 M16 64 L26 92" style="stroke:var(--celeste)" stroke-opacity=".6" stroke-width="1.5" stroke-dasharray="3 4" fill="none"/>
-            <text x="0" y="22" text-anchor="middle" style="fill:var(--muted)" font-size="13" font-family="Public Sans, sans-serif">Sensor de color</text>
-          </g>
-          <g id="ramas" fill="none" stroke-width="2" stroke-opacity=".5"></g>
-          <g id="compartimentos"></g>
-          <g id="servoBelt">
-            <rect x="606" y="118" width="30" height="22" rx="4" style="fill:var(--surface);stroke:var(--celeste-deep)" stroke-width="1.5"/>
-            <text x="621" y="133" text-anchor="middle" style="fill:var(--celeste-deep)" font-size="9" font-weight="600" font-family="Public Sans, sans-serif">SERVO</text>
-            <line x1="621" y1="118" x2="621" y2="102" style="stroke:var(--celeste-deep)" stroke-opacity=".5" stroke-width="2"/>
-            <g id="paleta" class="paleta-g"><line x1="621" y1="102" x2="662" y2="102" style="stroke:var(--text)" stroke-width="6" stroke-linecap="round"/></g>
-            <circle cx="621" cy="102" r="5" style="fill:var(--text)"/>
-          </g>
-          <g id="bolas"></g>
-        </svg>
-      </div>
-
-      <div class="grid g4" id="contadores"></div>
-      <div>
-        <div class="apilada" id="apilada" aria-hidden="true"></div>
-      </div>
-    </div>
-
     <div class="grid g-7-5">
-      <div class="panel">
-        <h2>Seguimiento del último limón</h2>
-        <ol id="pasos" class="pasos"></ol>
-      </div>
-      <div class="panel">
-        <h2>Lectura del sensor</h2>
-        <div class="pila" style="margin-top:14px">
-          <div class="fila entre"><span class="muted" style="font-size:13px">Color medido</span><span id="muestra" class="muestra"></span></div>
-          <div class="lectura"><b style="color:#d92d3a">R</b><div class="pista-b"><i id="barR" style="width:0;background:#d92d3a"></i></div><span id="valR" style="text-align:right">0</span></div>
-          <div class="lectura"><b style="color:#2f9e4f">G</b><div class="pista-b"><i id="barG" style="width:0;background:#2f9e4f"></i></div><span id="valG" style="text-align:right">0</span></div>
-          <div class="lectura"><b style="color:#2563eb">B</b><div class="pista-b"><i id="barB" style="width:0;background:#2563eb"></i></div><span id="valB" style="text-align:right">0</span></div>
-          <p class="muted" style="font-size:12.5px">Valores simulados. El sensor real (TCS34725) entrega estos tres números por cada limón.</p>
+      <div class="panel pila">
+        <div class="plano" style="padding:4px">
+          <svg id="maq" viewBox="0 0 440 520" role="img" aria-label="Máquina clasificadora: un tubo deja caer los limones frente al sensor, el servo orienta una rampa y el limón cae en el compartimento verde, amarillo o descarte">
+            <!-- tubo -->
+            <rect x="190" y="14" width="60" height="156" rx="6" style="fill:var(--surface);stroke:var(--line-2)" stroke-width="2" fill-opacity=".85"/>
+            <text x="262" y="30" style="fill:var(--muted)" font-size="12" font-family="Public Sans, sans-serif">Tubo de carga</text>
+            <g id="enTubo"></g>
+            <!-- sensor al final del tubo -->
+            <g>
+              <rect x="268" y="150" width="104" height="44" rx="8" style="fill:var(--surface);stroke:var(--celeste)" stroke-width="2"/>
+              <circle id="sensorLed" cx="286" cy="172" r="7" style="fill:var(--line-2)"/>
+              <text x="300" y="168" style="fill:var(--text)" font-size="12" font-weight="600" font-family="Public Sans, sans-serif">Sensor</text>
+              <text x="300" y="183" style="fill:var(--muted)" font-size="10.5" font-family="Public Sans, sans-serif">detecta y mide</text>
+              <path d="M268 172 H252" style="stroke:var(--celeste)" stroke-width="2" stroke-dasharray="4 3" fill="none"/>
+            </g>
+            <!-- servo + rampa -->
+            <rect x="140" y="193" width="46" height="24" rx="5" style="fill:var(--surface);stroke:var(--celeste-deep)" stroke-width="2"/>
+            <text x="163" y="209" text-anchor="middle" style="fill:var(--celeste-deep)" font-size="10" font-weight="700" font-family="Public Sans, sans-serif">SERVO</text>
+            <g id="rampa" style="transform-origin:220px 205px; transition: transform .6s cubic-bezier(.3,.7,.3,1);">
+              <rect x="210" y="203" width="20" height="112" rx="8" style="fill:var(--celeste-tint);stroke:var(--text)" stroke-width="2.5"/>
+            </g>
+            <circle cx="220" cy="205" r="6" style="fill:var(--text)"/>
+            <!-- compartimentos -->
+            <g id="bins"></g>
+            <!-- limón en proceso -->
+            <g id="bola" style="opacity:0"><circle id="bolaC" r="12" style="fill:var(--surface-2);stroke:var(--text)" stroke-width="2.5"/></g>
+          </svg>
         </div>
+
+        <div class="fila">
+          <button id="btnCargar" class="btn btn-primario btn-grande">🍋 Echar limones al tubo</button>
+          <button id="btnUno" class="btn btn-grande">Echar solo uno</button>
+        </div>
+        <p class="muted" style="font-size:13.5px">Cada vez que pulsas, caen unos cuantos limones distintos. Puedes pulsar las veces que quieras.</p>
+      </div>
+
+      <div class="pila">
+        <div class="panel pila" aria-live="polite">
+          <h2>Cómo va la clasificación</h2>
+          <div id="estadoBox" class="caja" style="padding:16px">
+            <div id="estadoTit" class="display" style="font-size:22px;font-weight:700">Esperando limones</div>
+            <p id="estadoSub" class="muted" style="margin-top:4px">El sensor no detecta nada, así que la máquina está quieta.</p>
+          </div>
+          <div class="grid g2" style="gap:10px">
+            <div class="kpi"><div class="v" id="nTubo">0</div><div class="t">En el tubo</div><div class="d">esperando su turno</div></div>
+            <div class="kpi"><div class="v" id="nClas">0</div><div class="t">Clasificados</div><div class="d" id="servoTxt">Servo en reposo · 90°</div></div>
+          </div>
+          <div class="grid g3" id="contadores" style="gap:10px"></div>
+          <div class="apilada" id="apilada" aria-hidden="true"></div>
+          <p id="progVoz" class="sr" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="panel">
+          <h2>Seguimiento del limón actual</h2>
+          <ol id="pasos" class="pasos" style="grid-template-columns:1fr;margin-top:14px"></ol>
+        </div>
+
+        <div class="panel">
+          <h2>Lectura del sensor</h2>
+          <div class="pila" style="margin-top:14px">
+            <div class="fila entre"><span class="muted" style="font-size:13px">Color medido</span><span id="muestra" class="muestra"></span></div>
+            <div class="lectura"><b style="color:#d92d3a">R</b><div class="pista-b"><i id="barR" style="width:0;background:#d92d3a"></i></div><span id="valR" style="text-align:right">0</span></div>
+            <div class="lectura"><b style="color:#2f9e4f">G</b><div class="pista-b"><i id="barG" style="width:0;background:#2f9e4f"></i></div><span id="valG" style="text-align:right">0</span></div>
+            <div class="lectura"><b style="color:#2563eb">B</b><div class="pista-b"><i id="barB" style="width:0;background:#2563eb"></i></div><span id="valB" style="text-align:right">0</span></div>
+            <p class="muted" style="font-size:12.5px">Valores simulados. El sensor real (TCS34725) entrega estos tres números por cada limón.</p>
+          </div>
+        </div>
+
+        <button id="btnTerminar" class="btn btn-negro btn-grande" disabled>Terminar y ver mi resultado</button>
       </div>
     </div>
   </section>
@@ -137,7 +124,7 @@
     <div class="panel pila">
       <div>
         <p class="muted" id="resSub" style="font-size:14px"></p>
-        <h1 id="resTitulo" tabindex="-1" style="margin-top:6px">Resultado de tu lote</h1>
+        <h1 id="resTitulo" tabindex="-1" style="margin-top:6px">Resultado de tu prueba</h1>
       </div>
 
       <div class="grid g-7-5">
@@ -161,12 +148,12 @@
       </div>
 
       <div>
-        <h3 style="margin-bottom:8px">Recomendaciones para este lote</h3>
+        <h3 style="margin-bottom:8px">Recomendaciones para esta prueba</h3>
         <ul id="resRec" style="margin:0;padding-left:20px"></ul>
       </div>
 
       <div class="fila">
-        <button id="btnOtro" class="btn btn-primario">Probar otro lote</button>
+        <button id="btnOtro" class="btn btn-primario">Probar otra vez</button>
         <button id="btnCSV" class="btn">Descargar resultado (CSV)</button>
         <a class="btn" href="stand.html">Ver la pantalla en vivo</a>
       </div>
@@ -190,14 +177,18 @@
   const NOMBRE = S.nombre || 'Visitante';
   const NOM_C = id => id.toLowerCase();
   const gl = (id, t = 16) => `<span style="color:var(--c-${NOM_C(id)});display:inline-flex">${SL.glifo(id, t, 'currentColor')}</span>`;
-  const BIN_Y = { VERDE: 12, AMARILLO: 86, DESCARTE: 160 };
-  BIN_Y.VERDE = 6; BIN_Y.AMARILLO = 86; BIN_Y.DESCARTE = 166;
-  const PISTA = {
-    inicio: [40, 102], sensor: [300, 102], salida: [632, 102],
-    bin: Object.fromEntries(SL.ORDEN.map(n => [n, [706, BIN_Y[n] + 29]]))
+  const espera = ms => new Promise(r => setTimeout(r, ms));
+  const PASOS = ['El limón llega al final del tubo', 'El sensor lo detecta y lee el color', 'El Arduino decide la categoría', 'El servo gira la rampa', 'Cae en su compartimento y se registra'];
+
+  // Geometría de la máquina (viewBox 440 x 520)
+  const PIVOTE = [220, 205], LARGO_RAMPA = 98;
+  const BIN = { VERDE: { x: 20, cx: 80 }, AMARILLO: { x: 160, cx: 220 }, DESCARTE: { x: 300, cx: 360 } };
+  const BIN_Y = 392, SENSOR_Y = 172;
+  const thetaDe = cat => (90 - SL.CATS[cat].angulo) * 0.6;          // grados de giro de la rampa
+  const puntaRampa = cat => {
+    const t = thetaDe(cat) * Math.PI / 180;
+    return [PIVOTE[0] - LARGO_RAMPA * Math.sin(t), PIVOTE[1] + LARGO_RAMPA * Math.cos(t)];
   };
-  const FASES = { lee: .35, decide: .45, servo: .55, libera: .8, fin: 1 };
-  const PASOS = ['Llega a la faja', 'El sensor lee el color', 'El Arduino decide', 'El servo desvía el limón', 'Cae en su compartimento y se registra'];
 
   /* ---------- registro de la persona ---------- */
   if (!S.registrado) {
@@ -205,44 +196,28 @@
     SL.guardarSesion({ ...S, registrado: true });
   }
 
-  /* ---------- dibujo de la faja ---------- */
-  function construirPista() {
-    const marcas = $('marcasFaja'); marcas.innerHTML = '';
-    for (let x = 50; x < 610; x += 26) {
-      const l = document.createElementNS(NS, 'line');
-      l.setAttribute('x1', x); l.setAttribute('x2', x); l.setAttribute('y1', 98); l.setAttribute('y2', 106);
-      marcas.appendChild(l);
-    }
-    const ramas = $('ramas'), comp = $('compartimentos'); ramas.innerHTML = ''; comp.innerHTML = '';
-    SL.ORDEN.forEach(n => {
-      const y = BIN_Y[n], c = SL.CATS[n], v = `var(--c-${NOM_C(n)})`;
-      const p = document.createElementNS(NS, 'path');
-      p.setAttribute('d', `M 632 102 C 650 102, 650 ${y + 29}, 666 ${y + 29}`);
-      p.style.stroke = v; ramas.appendChild(p);
-      const g = document.createElementNS(NS, 'g'); g.id = 'bin-' + n;
+  /* ---------- dibujo ---------- */
+  function construirBins() {
+    $('bins').innerHTML = SL.ORDEN.map(n => {
+      const c = SL.CATS[n], v = `var(--c-${NOM_C(n)})`, x = BIN[n].x;
       const forma = c.forma === 'circulo' ? '<circle cx="8" cy="8" r="7"/>' : c.forma === 'triangulo' ? '<path d="M8 1 L15.5 14.5 H.5 Z"/>' : '<rect x="1" y="1" width="14" height="14" rx="2"/>';
-      g.innerHTML = `
-        <rect x="666" y="${y}" width="90" height="58" rx="8" style="fill:${v};stroke:${v}" fill-opacity=".16" stroke-width="2"/>
-        <g transform="translate(676 ${y + 10})" style="fill:${v}">${forma}</g>
-        <text x="698" y="${y + 23}" style="fill:var(--text)" font-size="14" font-weight="600" font-family="Public Sans, sans-serif">${c.nombre}</text>
-        <text x="676" y="${y + 47}" style="fill:var(--muted)" font-size="11.5" font-family="Public Sans, sans-serif">servo ${c.angulo}°</text>`;
-      comp.appendChild(g);
-    });
+      return `<g id="bin-${n}">
+        <rect x="${x}" y="${BIN_Y}" width="120" height="112" rx="10" style="fill:${v};stroke:${v}" fill-opacity=".16" stroke-width="2.5"/>
+        <g transform="translate(${x + 12} ${BIN_Y + 12})" style="fill:${v}">${forma}</g>
+        <text x="${x + 34}" y="${BIN_Y + 25}" style="fill:var(--text)" font-size="14" font-weight="700" font-family="Public Sans, sans-serif">${c.nombre}</text>
+        <text x="${x + 12}" y="${BIN_Y + 98}" style="fill:var(--muted)" font-size="11.5" font-family="Public Sans, sans-serif">servo ${c.angulo}°</text>
+      </g>`;
+    }).join('');
   }
 
-  function construirContadores() {
+  function construirPanel() {
     $('contadores').innerHTML = SL.ORDEN.map(n => `
-      <div class="cont" id="cc-${n}">
-        <div class="et">${gl(n, 16)}<span>${SL.CATS[n].nombre}</span></div>
-        <div class="num" id="cn-${n}">0</div>
+      <div class="cont" id="cc-${n}" style="padding:12px">
+        <div class="et" style="font-size:13px">${gl(n, 14)}<span>${SL.CATS[n].nombre}</span></div>
+        <div class="num" id="cn-${n}" style="font-size:36px">0</div>
         <div class="sub" id="cp-${n}">0 %</div>
         <div class="barra"><i id="cb-${n}" style="width:0;background:var(--c-${NOM_C(n)})"></i></div>
-      </div>`).join('') + `
-      <div class="cont neutro">
-        <div class="et muted">Clasificados</div>
-        <div class="num" id="cn-TOTAL">0</div>
-        <div class="sub" id="cp-TOTAL">de 0</div>
-      </div>`;
+      </div>`).join('');
     $('apilada').innerHTML = SL.ORDEN.map(n => `<i id="ap-${n}" style="width:0;background:var(--c-${NOM_C(n)})"></i>`).join('');
     $('pasos').innerHTML = PASOS.map((t, i) => `<li class="paso" id="paso-${i}"><span class="chk" aria-hidden="true">✓</span><span>${t}</span></li>`).join('');
   }
@@ -255,169 +230,180 @@
     });
   }
 
-  /* ---------- lote aleatorio realista ---------- */
+  function dibujarTubo(n) {
+    const visibles = Math.min(n, 6), g = $('enTubo'); g.innerHTML = '';
+    for (let i = 0; i < visibles; i++) {
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', 220); c.setAttribute('cy', 150 - i * 25); c.setAttribute('r', 11);
+      c.style.fill = 'var(--surface-2)'; c.style.stroke = 'var(--text)'; c.setAttribute('stroke-width', 2); g.appendChild(c);
+    }
+    if (n > 6) {
+      const t = document.createElementNS(NS, 'text'); t.setAttribute('x', 220); t.setAttribute('y', 46); t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', 12); t.setAttribute('font-weight', 700); t.style.fill = 'var(--text)'; t.textContent = `+${n - 6}`; g.appendChild(t);
+    }
+    $('nTubo').textContent = n;
+  }
+
+  /* ---------- calidad del lote (se sortea una vez por prueba) ---------- */
   const azar = (a, b) => a + Math.random() * (b - a);
-  function generarLote(total) {
-    let pD, pV, pA, intentos = 0;
-    do {
-      pD = azar(6, 22); pV = azar(45, 65); pA = 100 - pD - pV; intentos++;
-    } while ((pA < 20 || pA > 35) && intentos < 200);
+  function sortearCalidad() {
+    let pD, pV, pA, k = 0;
+    do { pD = azar(6, 22); pV = azar(45, 65); pA = 100 - pD - pV; k++; } while ((pA < 20 || pA > 35) && k < 200);
     if (pA < 20 || pA > 35) { pV = 55; pD = 12; pA = 33; }
-    let nD = Math.max(1, Math.round(total * pD / 100));
-    let nV = Math.round(total * pV / 100);
-    let nA = total - nV - nD;
-    if (nA < 0) { nV += nA; nA = 0; }
-    const arr = [].concat(Array(nV).fill('VERDE'), Array(nA).fill('AMARILLO'), Array(nD).fill('DESCARTE'));
-    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
-    return arr;
+    return { pV, pA, pD };
+  }
+  function nuevaCategoria(q) {
+    const r = Math.random() * 100;
+    return r < q.pV ? 'VERDE' : r < q.pV + q.pA ? 'AMARILLO' : 'DESCARTE';
   }
   const RGB_BASE = { VERDE: [[80, 130], [150, 210], [40, 85]], AMARILLO: [[215, 250], [185, 225], [25, 75]], DESCARTE: [[85, 135], [55, 95], [25, 60]] };
   const lecturaRGB = cat => RGB_BASE[cat].map(([a, b]) => Math.round(azar(a, b)));
+  function mostrarRGB(rgb) {
+    ['R', 'G', 'B'].forEach((k, i) => { $('bar' + k).style.width = (rgb[i] / 255 * 100) + '%'; $('val' + k).textContent = rgb[i]; });
+    $('muestra').style.background = rgb[0] + rgb[1] + rgb[2] ? `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})` : '';
+  }
 
-  /* ---------- estado de la corrida ---------- */
-  let corrida = null;
-  let pausaRemota = false;
+  /* ---------- estado ---------- */
+  let sesion = null, pausaRemota = false, procesando = false;
 
+  function nuevaSesion() {
+    sesion = { id: 'L' + Date.now().toString(36), calidad: sortearCalidad(), cola: [], cuenta: { VERDE: 0, AMARILLO: 0, DESCARTE: 0 }, salidas: 0, cancelado: false };
+    construirPanel(); construirBins(); dibujarTubo(0); mostrarRGB([0, 0, 0]); poner(null); marcarPaso(-1);
+    $('nClas').textContent = 0; $('bola').style.opacity = 0; $('btnTerminar').disabled = true;
+    estado('Esperando limones', 'El sensor no detecta nada, así que la máquina está quieta.', false);
+  }
+
+  function estado(tit, sub, activo) {
+    $('estadoTit').textContent = tit; $('estadoSub').textContent = sub;
+    $('estadoBox').style.borderColor = activo ? 'var(--celeste)' : 'var(--line)';
+    $('sensorLed').style.fill = activo ? 'var(--celeste)' : 'var(--line-2)';
+  }
+
+  function poner(cat) {
+    $('rampa').style.transform = `rotate(${cat ? thetaDe(cat) : 0}deg)`;
+    $('servoTxt').textContent = cat ? `Servo en ${SL.CATS[cat].angulo}° · ${SL.CATS[cat].nombre}` : 'Servo en reposo · 90°';
+  }
+
+  function pintarCuentas() {
+    const c = sesion, tot = c.salidas;
+    SL.ORDEN.forEach(n => {
+      const pct = tot ? Math.round(c.cuenta[n] * 100 / tot) : 0;
+      $('cn-' + n).textContent = c.cuenta[n]; $('cp-' + n).textContent = pct + ' %'; $('cb-' + n).style.width = pct + '%';
+      $('ap-' + n).style.width = (tot ? c.cuenta[n] * 100 / tot : 0) + '%';
+    });
+    $('nClas').textContent = tot;
+    $('progVoz').textContent = `${tot} ${tot === 1 ? 'limón' : 'limones'} clasificado${tot === 1 ? '' : 's'}.`;
+  }
+
+  /* ---------- aviso de pausa remota ---------- */
   function pintarAviso() {
     const av = $('avisoPausa');
     if (!pausaRemota) { av.classList.add('oculto'); return; }
     av.classList.remove('oculto');
-    av.textContent = corrida
-      ? 'La máquina está en pausa de emergencia. Tu lote sigue en cuanto la reanuden.'
-      : 'La máquina está en pausa. Puedes preparar el lote: empezará a correr cuando la reanuden.';
+    av.textContent = 'La máquina está en pausa de emergencia. Sigue en cuanto la reanuden; mientras tanto no clasifica.';
   }
-  DB.onEstado(est => {
-    pausaRemota = est.maquina === 'stop' || est.maquina === 'off';
-    if (corrida) corrida.pausado = pausaRemota;
-    pintarAviso();
-  });
+  DB.onEstado(est => { pausaRemota = est.maquina === 'stop' || est.maquina === 'off'; pintarAviso(); });
+  async function sinPausa() { while (pausaRemota && sesion && !sesion.cancelado) await espera(200); }
 
-  function actualizarCuentas() {
-    const c = corrida, tot = c.salidas;
-    SL.ORDEN.forEach(n => {
-      const pct = tot ? Math.round(c.cuenta[n] * 100 / tot) : 0;
-      $('cn-' + n).textContent = c.cuenta[n];
-      $('cp-' + n).textContent = pct + ' %';
-      $('cb-' + n).style.width = pct + '%';
-      $('ap-' + n).style.width = (c.total ? c.cuenta[n] * 100 / c.total : 0) + '%';
-    });
-    $('cn-TOTAL').textContent = tot;
-    $('cp-TOTAL').textContent = 'de ' + c.total;
-    $('progTxt').textContent = `Limón ${tot} de ${c.total}`;
-    const p = Math.round(tot * 100 / c.total);
-    $('progFill').style.width = p + '%';
-    $('progBar').setAttribute('aria-valuenow', p);
-    const paso = Math.max(1, Math.round(c.total / 4));
-    if (tot % paso === 0 || tot === c.total) $('progVoz').textContent = `${tot} de ${c.total} limones clasificados.`;
+  /* ---------- animación de un limón ---------- */
+  const bola = $('bola'), bolaC = $('bolaC');
+  const pos = (x, y) => `translate(${x}px, ${y}px)`;
+  async function mover(a, b, ms, easing = 'ease-in-out') {
+    if (sesion.cancelado) return;
+    await bola.animate([{ transform: pos(a[0], a[1]) }, { transform: pos(b[0], b[1]) }], { duration: ms, easing, fill: 'forwards' }).finished.catch(() => {});
   }
 
-  function setPaleta(cat) {
-    const ang = cat ? SL.CATS[cat].angulo : SL.ANGULO_REPOSO;
-    $('paleta').style.transform = `rotate(${(ang - 90) * 0.55}deg)`;
-    $('servoTxt').textContent = cat ? `Servo en ${ang}° · ${SL.CATS[cat].nombre}` : 'Servo en reposo · 90°';
+  async function ciclo(cat) {
+    const c = sesion, id = c.id;
+    const vivo = () => sesion && sesion.id === id && !sesion.cancelado;
+    // 1) el limón cae del tubo hasta el sensor
+    bolaC.style.fill = 'var(--surface-2)'; bola.style.opacity = 1; bola.style.transform = pos(220, 150);
+    marcarPaso(0); estado('Limón al final del tubo', 'Cae frente al sensor.', true);
+    await mover([220, 150], [220, SENSOR_Y], 450, 'ease-in'); if (!vivo()) return;
+    await sinPausa(); if (!vivo()) return;
+    // 2) el sensor detecta -> ENTRADA
+    marcarPaso(1); estado('¡Limón detectado!', 'El sensor lo vio y empieza a medir su color.', true);
+    DB.pushEvento({ tipo: 'entrada', origen: 'jurado', quien: NOMBRE, lote: id });
+    await espera(550); if (!vivo()) return;
+    await sinPausa(); if (!vivo()) return;
+    mostrarRGB(lecturaRGB(cat)); bolaC.style.fill = `var(--c-${NOM_C(cat)})`;
+    estado('Leyendo el color', 'El sensor mide rojo, verde y azul.', true);
+    await espera(500); if (!vivo()) return;
+    // 3) decide
+    marcarPaso(2); estado('Decidiendo', `El Arduino lo clasifica como ${SL.CATS[cat].nombre.toLowerCase()} (${SL.CATS[cat].estado.toLowerCase()}).`, true);
+    await espera(450); if (!vivo()) return;
+    await sinPausa(); if (!vivo()) return;
+    // 4) servo gira
+    marcarPaso(3); poner(cat); estado('El servo gira la rampa', `Va a ${SL.CATS[cat].angulo}° hacia el compartimento ${SL.CATS[cat].nombre.toLowerCase()}.`, true);
+    await espera(650); if (!vivo()) return;
+    // 5) desliza y cae al compartimento
+    const punta = puntaRampa(cat);
+    await mover([220, SENSOR_Y], [PIVOTE[0], PIVOTE[1] - 4], 160, 'ease-in'); if (!vivo()) return;
+    await mover([PIVOTE[0], PIVOTE[1] - 4], punta, 560, 'ease-in'); if (!vivo()) return;
+    await mover(punta, [BIN[cat].cx, BIN_Y + 66], 480, 'ease-in'); if (!vivo()) return;
+    // 6) SALIDA clasificada
+    c.cuenta[cat]++; c.salidas++;
+    DB.pushEvento({ tipo: 'salida', cat, origen: 'jurado', quien: NOMBRE, lote: id });
+    marcarPaso(4, true); pintarCuentas();
+    $('btnTerminar').disabled = false;
+    const card = $('cc-' + cat); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+    $('bin-' + cat).firstElementChild.animate([{ fillOpacity: .55 }, { fillOpacity: .16 }], { duration: 600, easing: 'ease-out' });
+    bola.style.opacity = 0;
+    await espera(250);
+    poner(null);
   }
 
-  function posicion(u, cat) {
-    const L = (a, b, t) => a + (b - a) * t;
-    if (u < FASES.lee) return [L(PISTA.inicio[0], PISTA.sensor[0], u / FASES.lee), 102];
-    if (u < .7) return [L(PISTA.sensor[0], PISTA.salida[0], (u - FASES.lee) / (.7 - FASES.lee)), 102];
-    const t = Math.min(1, (u - .7) / .3), e = t * t * (3 - 2 * t);
-    return [L(PISTA.salida[0], PISTA.bin[cat][0], e), L(102, PISTA.bin[cat][1], e)];
-  }
-
-  function crearLimon() {
-    const c = corrida, cat = c.cats[c.spawn++];
-    const g = document.createElementNS(NS, 'g');
-    g.innerHTML = '<circle r="12" style="fill:var(--surface-2);stroke:var(--text)" stroke-width="2.5"/>';
-    $('bolas').appendChild(g);
-    const lim = { cat, s: c.vt, fase: 0, el: g, rgb: lecturaRGB(cat) };
-    c.activos.push(lim); c.ultimaSpawn = c.vt;
-    DB.pushEvento({ tipo: 'entrada', origen: 'jurado', quien: NOMBRE, lote: c.id });
-    marcarPaso(0);
-  }
-
-  function mostrarRGB(rgb) {
-    ['R', 'G', 'B'].forEach((k, i) => { $('bar' + k).style.width = (rgb[i] / 255 * 100) + '%'; $('val' + k).textContent = rgb[i]; });
-    $('muestra').style.background = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-  }
-
-  function avanzar(lim) {
-    const c = corrida, u = (c.vt - lim.s) / c.D;
-    if (u >= FASES.lee && lim.fase < 1) { lim.fase = 1; mostrarRGB(lim.rgb); marcarPaso(1); }
-    if (u >= FASES.decide && lim.fase < 2) { lim.fase = 2; lim.el.firstChild.style.fill = `var(--c-${NOM_C(lim.cat)})`; marcarPaso(2); }
-    if (u >= FASES.servo && lim.fase < 3) { lim.fase = 3; c.paletaDe = lim; setPaleta(lim.cat); marcarPaso(3); }
-    if (u >= FASES.libera && lim.fase < 4) { lim.fase = 4; if (c.paletaDe === lim) { c.paletaDe = null; setPaleta(null); } }
-    if (u >= FASES.fin && lim.fase < 5) {
-      lim.fase = 5; marcarPaso(4, true);
-      c.cuenta[lim.cat]++; c.salidas++;
-      DB.pushEvento({ tipo: 'salida', cat: lim.cat, origen: 'jurado', quien: NOMBRE, lote: c.id });
-      actualizarCuentas();
-      const card = $('cc-' + lim.cat); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
-      const r = $('bin-' + lim.cat).firstElementChild;
-      r.animate([{ fillOpacity: .5 }, { fillOpacity: .16 }], { duration: 500, easing: 'ease-out' });
-      lim.el.remove();
-      return true;
+  async function procesar() {
+    if (procesando) return;
+    procesando = true;
+    const id = sesion.id;
+    while (sesion && sesion.id === id && !sesion.cancelado && sesion.cola.length) {
+      await sinPausa();
+      const cat = sesion.cola.shift();
+      dibujarTubo(sesion.cola.length + 0);   // el que cae sale del tubo
+      await ciclo(cat);
     }
-    const [x, y] = posicion(Math.min(u, 1), lim.cat);
-    lim.el.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
-    return false;
-  }
-
-  function tick(now) {
-    const c = corrida; if (!c) return;
-    const dt = Math.min(now - c.last, 100); c.last = now;
-    if (!c.pausado) {
-      c.vt += dt;
-      if (c.spawn < c.total && c.vt - c.ultimaSpawn >= c.T) crearLimon();
-      c.activos = c.activos.filter(l => !avanzar(l));
-      if (c.spawn >= c.total && !c.activos.length) { terminar(false); return; }
+    procesando = false;
+    if (sesion && sesion.id === id && !sesion.cancelado) {
+      estado('Esperando limones', 'El sensor no detecta nada, así que la máquina está quieta.', false);
+      marcarPaso(-1);
     }
-    c.raf = requestAnimationFrame(tick);
   }
 
-  /* ---------- flujo ---------- */
+  function cargar(n) {
+    if (!sesion || sesion.cancelado) return;
+    for (let i = 0; i < n; i++) sesion.cola.push(nuevaCategoria(sesion.calidad));
+    dibujarTubo(sesion.cola.length);
+    $('progVoz').textContent = `Cayeron ${n} ${n === 1 ? 'limón' : 'limones'} al tubo.`;
+    procesar();
+  }
+
+  /* ---------- resultado ---------- */
+  let ultimoResultado = null, grafico = null;
+
   function mostrar(vista) {
-    $('vistaPrep').classList.toggle('oculto', vista !== 'prep');
     $('vistaRun').classList.toggle('oculto', vista !== 'run');
     $('vistaRes').classList.toggle('oculto', vista !== 'res');
   }
 
-  function iniciar() {
-    const total = +document.querySelector('input[name=tam]:checked').value;
-    const T = +document.querySelector('input[name=vel]:checked').value;
-    construirContadores(); construirPista(); $('bolas').innerHTML = '';
-    setPaleta(null); mostrarRGB([0, 0, 0]); $('muestra').style.background = '';
-    corrida = {
-      id: 'L' + Date.now().toString(36), total, T, D: Math.max(1400, T * 1.8),
-      cats: generarLote(total), spawn: 0, activos: [], paletaDe: null,
-      cuenta: { VERDE: 0, AMARILLO: 0, DESCARTE: 0 }, salidas: 0, vt: 0, ultimaSpawn: -1e9,
-      pausado: pausaRemota, last: performance.now(), raf: 0, inicio: Date.now()
-    };
-    actualizarCuentas(); mostrar('run'); pintarAviso();
-    $('progVoz').textContent = `Empieza el lote de ${total} limones.`;
-    $('tRun').setAttribute('tabindex', '-1'); $('tRun').focus({ preventScroll: false });
-    corrida.raf = requestAnimationFrame(tick);
-  }
-
-  let ultimoResultado = null, grafico = null;
-
-  function terminar(detenido) {
-    const c = corrida; if (!c) return;
-    cancelAnimationFrame(c.raf); corrida = null; $('bolas').innerHTML = ''; setPaleta(null);
-    if (!c.salidas) { SL.toast('No llegó a clasificarse ningún limón.', 'mal'); mostrar('prep'); pintarAviso(); return; }
+  async function terminar() {
+    const c = sesion; if (!c || !c.salidas) return;
+    // Los limones que siguen en el tubo no se clasifican; el que ya está en la máquina termina su recorrido
+    const sinProcesar = c.cola.length;
+    c.cola = []; dibujarTubo(0); $('btnTerminar').disabled = true; $('btnCargar').disabled = true; $('btnUno').disabled = true;
+    while (procesando) await espera(100);
+    $('btnCargar').disabled = false; $('btnUno').disabled = false;
+    c.cancelado = true; bola.style.opacity = 0; poner(null);
     const a = SL.analizarLote(c.cuenta);
-    DB.guardarLote({
-      nombre: 'Lote de prueba de ' + NOMBRE, quien: NOMBRE, total: a.total, conteo: { ...c.cuenta },
-      aprovechables: a.aprov, pct: a.pct, lote: c.id, detenido: !!detenido
-    });
-    ultimoResultado = { a, c, detenido };
-    mostrarResultado(); pintarAviso();
+    DB.guardarLote({ nombre: 'Prueba de ' + NOMBRE, quien: NOMBRE, total: a.total, conteo: { ...c.cuenta }, aprovechables: a.aprov, pct: a.pct, lote: c.id, detenido: false });
+    ultimoResultado = { a, c, sinProcesar };
+    mostrarResultado();
   }
 
   function mostrarResultado() {
-    const { a, c, detenido } = ultimoResultado;
+    const { a, c, sinProcesar } = ultimoResultado;
     mostrar('res');
-    $('resSub').textContent = `${detenido ? 'Lote detenido' : 'Lote terminado'} · ${a.total} limón${a.total === 1 ? '' : 'es'} clasificado${a.total === 1 ? '' : 's'}${detenido ? ` de ${c.total}` : ''} · ${SL.hora()}`;
+    $('resSub').textContent = `Prueba terminada · ${a.total} ${a.total === 1 ? 'limón' : 'limones'} clasificado${a.total === 1 ? '' : 's'}${sinProcesar ? ` (${sinProcesar} se quedaron en el tubo sin clasificar)` : ''} · ${SL.hora()}`;
     $('resGran').textContent = a.aprov;
     $('resFrase').textContent = `de ${a.total} limones se pueden aprovechar (${a.pct} %)`;
     const clase = { bien: 'info', neutro: 'info', medio: 'warn', mal: 'mal' }[a.nivel];
@@ -442,27 +428,25 @@
     if (typeof Chart === 'undefined' || !ultimoResultado) return;
     const { a, c } = ultimoResultado;
     if (grafico) grafico.destroy();
-    Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+    const cs = () => getComputedStyle(document.documentElement);
+    Chart.defaults.color = cs().getPropertyValue('--muted').trim();
     Chart.defaults.font.family = 'Public Sans, sans-serif';
     const centro = {
       id: 'centro',
       afterDraw(ch) {
         const { ctx, chartArea: { left, right, top, bottom } } = ch;
-        const x = (left + right) / 2, y = (top + bottom) / 2, cs = getComputedStyle(document.documentElement);
+        const x = (left + right) / 2, y = (top + bottom) / 2;
         ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = cs.getPropertyValue('--text').trim(); ctx.font = '700 34px Sora, sans-serif';
+        ctx.fillStyle = cs().getPropertyValue('--text').trim(); ctx.font = '700 34px Sora, sans-serif';
         ctx.fillText(a.pct + ' %', x, y - 6);
-        ctx.fillStyle = cs.getPropertyValue('--muted').trim(); ctx.font = '12px "Public Sans", sans-serif';
+        ctx.fillStyle = cs().getPropertyValue('--muted').trim(); ctx.font = '12px "Public Sans", sans-serif';
         ctx.fillText('aprovechable', x, y + 18); ctx.restore();
       }
     };
     grafico = new Chart($('dona').getContext('2d'), {
       type: 'doughnut',
-      data: {
-        labels: SL.ORDEN.map(n => SL.CATS[n].nombre),
-        datasets: [{ data: SL.ORDEN.map(n => c.cuenta[n]), backgroundColor: SL.ORDEN.map(n => SL.color(n)), borderColor: getComputedStyle(document.documentElement).getPropertyValue('--surface').trim(), borderWidth: 4, hoverOffset: 6 }]
-      },
-      options: { maintainAspectRatio: false, cutout: '66%', animation: { duration: 500 }, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 14 } } } },
+      data: { labels: SL.ORDEN.map(n => SL.CATS[n].nombre), datasets: [{ data: SL.ORDEN.map(n => c.cuenta[n]), backgroundColor: SL.ORDEN.map(n => SL.color(n)), borderColor: cs().getPropertyValue('--surface').trim(), borderWidth: 4, hoverOffset: 6 }] },
+      options: { maintainAspectRatio: false, cutout: '66%', animation: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 14 } } } },
       plugins: [centro]
     });
   }
@@ -470,29 +454,20 @@
 
   function csv() {
     const { a, c } = ultimoResultado;
-    const f = [
-      ['Lote', 'Lote de prueba de ' + NOMBRE], ['Fecha', SL.hoy()], ['Hora', SL.hora()], ['Limones clasificados', a.total], [],
-      ['Categoría', 'Estado', 'Limones', 'Porcentaje']
-    ];
+    const f = [['Prueba de', NOMBRE], ['Fecha', SL.hoy()], ['Hora', SL.hora()], ['Limones clasificados', a.total], [], ['Categoría', 'Estado', 'Limones', 'Porcentaje']];
     SL.ORDEN.forEach(n => f.push([SL.CATS[n].nombre, SL.CATS[n].estado, c.cuenta[n], (a.total ? Math.round(c.cuenta[n] * 100 / a.total) : 0) + ' %']));
     f.push([], ['Aprovechables', '', a.aprov, a.pct + ' %'], ['Podridos o dañados', '', a.descarte, a.pd + ' %'], ['Veredicto', a.veredicto]);
-    SL.descargar(`resultado-lote-${SL.hoy()}.csv`, f.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\r\n'));
+    SL.descargar(`resultado-${SL.hoy()}.csv`, f.map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\r\n'));
   }
 
   /* ---------- eventos de la página ---------- */
-  function estimar() {
-    const total = +document.querySelector('input[name=tam]:checked').value, T = +document.querySelector('input[name=vel]:checked').value;
-    const seg = Math.round((total * T + Math.max(1400, T * 1.8)) / 1000);
-    $('estimado').textContent = `Dura unos ${seg} segundos.`;
-  }
-  document.querySelectorAll('input[name=tam], input[name=vel]').forEach(i => i.addEventListener('change', estimar));
-  $('btnGenerar').addEventListener('click', iniciar);
-  $('btnDetener').addEventListener('click', () => terminar(true));
-  $('btnOtro').addEventListener('click', () => { mostrar('prep'); pintarAviso(); window.scrollTo({ top: 0 }); $('btnGenerar').focus(); });
+  $('btnCargar').addEventListener('click', () => cargar(3 + Math.floor(Math.random() * 6)));   // 3 a 8 limones
+  $('btnUno').addEventListener('click', () => cargar(1));
+  $('btnTerminar').addEventListener('click', terminar);
+  $('btnOtro').addEventListener('click', () => { mostrar('run'); nuevaSesion(); pintarAviso(); window.scrollTo({ top: 0 }); $('btnCargar').focus(); });
   $('btnCSV').addEventListener('click', csv);
-  window.addEventListener('beforeunload', () => { if (corrida) cancelAnimationFrame(corrida.raf); });
 
-  construirContadores(); construirPista(); estimar();
+  nuevaSesion(); mostrar('run');
 })();
 </script>
 </body>
